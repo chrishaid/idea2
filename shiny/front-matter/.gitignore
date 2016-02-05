@@ -1,0 +1,6 @@
+# authentication stuff
+.htaccess
+.htpasswd
+
+# war director
+war

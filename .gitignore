@@ -1,0 +1,8 @@
+# Environment variables
+.env
+
+# config files used by cron
+*.dcf
+
+# OS X bs
+.DS_Store
