@@ -1,4 +1,36 @@
 #########################
+## OAuth Service       ##
+#########################
+# Google OAuth Proxy
+#authproxy:
+#  build: ./oauth
+#  command: --cookie-secure=false --upstream="http://nginx:80" --http-address="0.0.0.0:4180" --redirect-url="http://idea.kippchicago.org/oauth2/callback" --email-domain="kippchicago.org"
+#  links:
+#    - nginx
+#  ports:
+#    - "80:4180"
+#  env_file:
+#    - ./oauth/.env
+
+#########################
+##  Cron / ETL Service ##
+#########################
+cron:
+  build: ./cron/
+  expose:
+    - "8787"
+  ports:
+    - "8787:8787"
+  volumes:
+    - ./cron/jobs:/jobs
+    - /data
+  volumes_from:
+    - data
+    - shiny
+
+
+
+#########################
 ##  Data Volume        ##
 #########################
 data:
@@ -7,61 +39,31 @@ data:
     #  - cron
     volumes:
      - /data
-     - ./configs:/configs
-
-
-#########################
-##  Cron / ETL Service ##
-#########################
-cron:
-    build: ./cron/
-    volumes:
-     - ./cron/jobs:/jobs
-     - /data
-    volumes_from:
-      - data
-      - shiny
-    ports:
-     - "8787:8787"
-    expose:
-     - "8787"
-
-#########################
-## Shiny Service       ##
-#########################
-shiny:
-    build: ./shiny/
-    expose:
-      - "3838"
-    ports:
-      - "3838:3838"
-    volumes_from:
-      - data
-    volumes:
-      - ./shiny/war/:/srv/shiny-server/war
 
 #########################
 ## Web server Service  ##
 #########################
 nginx:
-    build: ./nginx
-    restart: always
-    ports:
-     - "8080:80"
-     #- "8080:80"
-    volumes_from:
-     - shiny
+  build: ./nginx
+  links:
+    - shiny
+  ports:
+    - "80:80"
+  restart: always
+  volumes_from:
+    - shiny
+
 
 #########################
-## OAuth Service       ##
+## Shiny Service       ##
 #########################
-# Google OAuth Proxy
-authproxy:
-  build: ./oauth
+shiny:
+  build: ./shiny/
+  expose:
+    - "3838"
   ports:
-    - "80:4180"
-  links:
-    - nginx
-  command: --cookie-secure=false --upstream="http://nginx:80" --http-address="0.0.0.0:4180" --redirect-url="http://idea.kippchicago.org/oauth2/callback" --email-domain="kippchicago.org"
-  env_file:
-    - ./oauth/.env
+    - "3838:80"
+  volumes_from:
+    - data
+  volumes:
+    - ./shiny/war/:/srv/shiny-server/war

@@ -23,7 +23,6 @@ cron:
   volumes:
     - /jobs
     - /data
-    - /configs
   volumes_from:
     - data
     - shiny
@@ -35,7 +34,6 @@ data:
   image: 'rocker/hadleyverse:latest'
   volumes:
     - /data
-    - /configs
 
 #########################
 ## Web server Service  ##
