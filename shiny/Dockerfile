@@ -51,6 +51,8 @@ COPY ./recruit/ /srv/shiny-server/recruit
 
 COPY ./assets/ /var/www/
 
+COPY ./war /srv/shiny-server/war
+
 COPY shiny-server.sh /usr/bin/shiny-server.sh
 
 CMD ["/usr/bin/shiny-server.sh"]
