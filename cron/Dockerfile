@@ -20,8 +20,8 @@ RUN apt-get update &&\
 
 
 # add jobs
-#RUN mmkdir /jobs
-#VOLUME jobs /jobs
+RUN mmkdir /jobs
+COPY jobs /jobs
 
 # add crontab
 COPY crontab /etc/cron.d/idea-cron
