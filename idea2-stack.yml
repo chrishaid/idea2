@@ -1,0 +1,61 @@
+#########################
+## OAuth Service       ##
+#########################
+# Google OAuth Proxy
+authproxy:
+  image: 'chrishaid/idea2-oauth2:latest'
+  command: '--cookie-secure=false --upstream="http://nginx:80" --http-address="0.0.0.0:4180" --redirect-url="http://idea.kippchicago.org/oauth2/callback" --email-domain="kippchicago.org"'
+  links:
+    - nginx
+  ports:
+    - '80:4180'
+
+
+#########################
+##  Cron / ETL Service ##
+#########################
+cron:
+  image: 'chrishaid/idea2-cron:latest'
+  expose:
+    - '8787'
+  ports:
+    - '8787:8787'
+  volumes:
+    - /jobs
+    - /data
+    - /configs
+  volumes_from:
+    - data
+    - shiny
+
+#########################
+##  Data Volume        ##
+#########################
+data:
+  image: 'rocker/hadleyverse:latest'
+  volumes:
+    - /data
+    - /configs
+
+#########################
+## Web server Service  ##
+#########################
+nginx:
+  image: 'chrishaid/idea2-nginx:latest'
+  links:
+    - shiny
+  ports:
+    - '80:80'
+  restart: always
+  volumes_from:
+    - shiny
+
+#########################
+## Shiny Service       ##
+#########################
+shiny:
+  image: 'chrishaid/idea2-shiny:latest'
+  expose:
+    - '3838'
+  volumes_from:
+    - data

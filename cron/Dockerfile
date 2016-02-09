@@ -20,7 +20,7 @@ RUN apt-get update &&\
 
 
 # add jobs
-RUN mmkdir /jobs
+#RUN mkdir /jobs
 COPY jobs /jobs
 
 # add crontab
