@@ -22,7 +22,7 @@ cron:
     - '8787:8787'
   volumes:
     - /jobs
-    - /data
+     - '/config:/jobs/config'
   volumes_from:
     - data
     - shiny
@@ -55,5 +55,7 @@ shiny:
   image: 'chrishaid/idea2-shiny:latest'
   expose:
     - '3838'
+  ports:
+    - '3838:80'
   volumes_from:
     - data
