@@ -5,7 +5,7 @@ MAINTAINER Andrew Huynh <andrew@productbio.com>
 ENV REFRESHED_AT 2015-08-25
 
 # Checkout bitly's latest google-auth-proxy code from Github
-RUN go get github.com/Gamevy/oauth2_proxy
+RUN go get github.com/chrishaid/oauth2_proxy
 
 # Expose the ports we need and setup the ENTRYPOINT w/ the default argument
 # to be pass in.
