@@ -1,15 +1,16 @@
 authproxy:
   image: 'soellman/oauth2_proxy:latest'
-  command: '--cookie-secure=false --upstream="http://shiny:3838" --http-address="0.0.0.0:4180" --redirect-url="http://3f06d261-527c-4ef3-a831-07423b0f0f25.node.dockerapp.io/oauth2/callback" --email-domain="kippchicago.org" --pass-host-header="false" --pass-basic-auth="false"'
+  command: '--cookie-secure=false --upstream="http://shiny:3838" --http-address="0.0.0.0:4180" --redirect-url="http://3f06d261-527c-4ef3-a831-07423b0f0f25.node.dockerapp.io/oauth2/callback" --email-domain="kippchicago.org" --google-admin-email="idea-admin@kippchicago.org" --google-group="idea-users@kippchicago.org" --google-service-account-json="/config/kippidea-e2711c59955a.json"'
   environment:
     - OAUTH2_PROXY_CLIENT_ID=574990278135-1h1b9sr3b7st5s80a35ojle93nvo68t8.apps.googleusercontent.com
     - OAUTH2_PROXY_CLIENT_SECRET=TyN9s1_lt0Fq2PFNdOrNpEFU
     - OAUTH2_PROXY_COOKIE_SECRET=RfHBHfUBJX
   links:
-    - nginx
     - shiny
   ports:
     - '80:4180'
+  volumes:
+    - /config
 cron:
   image: 'chrishaid/idea2-cron:latest'
   expose:
@@ -26,15 +27,6 @@ data:
   image: 'rocker/hadleyverse:latest'
   volumes:
     - /data
-nginx:
-  image: 'chrishaid/idea2-nginx:latest'
-  links:
-    - shiny
-  ports:
-    - '8080:8080'
-  restart: always
-  volumes_from:
-    - shiny
 shiny:
   image: 'chrishaid/idea2-shiny:latest'
   expose:
