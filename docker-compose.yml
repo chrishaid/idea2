@@ -43,15 +43,15 @@ data:
 #########################
 ## Web server Service  ##
 #########################
-nginx:
-  build: ./nginx
-  links:
-    - shiny
-  ports:
-    - "80:80"
-  restart: always
-  volumes_from:
-    - shiny
+#nginx:
+#  build: ./nginx
+#  links:
+#    - shiny
+#  ports:
+#    - "80:80"
+#  restart: always
+#  volumes_from:
+#    - shiny
 
 
 #########################
@@ -62,7 +62,7 @@ shiny:
   expose:
     - "3838"
   ports:
-    - "3838:80"
+    - "3838:3838"
   volumes_from:
     - data
   volumes:

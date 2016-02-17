@@ -228,6 +228,23 @@ ada_weekly_school <- attend_date_school %>%
   ) %>%
   filter(date == max(date))
 
+# student_data 
+attend_student_ytd <- attend_student %>%
+  group_by(student_number,
+           lastfirst,
+           grade_level,
+           schoolabbreviation) %>%
+  summarize(enrolled = sum(enrolled),
+            present = sum(present),
+            absent=sum(absent),
+            ada = present/enrolled*100
+            ) %>%
+  group_by(schoolabbreviation, grade_level) %>%
+  mutate(ada_rank = cume_dist(ada)) %>%
+  arrange(schoolabbreviation, grade_level, ada_rank)
+  
+            
+
 
 
 
@@ -237,6 +254,7 @@ attendance_dir <- sprintf("%s/attendance/", data_dir)
 
 
 save(attend_student,
+     attend_student_ytd,
      attend_date_school_grade,
      attend_date_grade_hr,
      attend_date_school, 
