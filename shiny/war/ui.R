@@ -16,9 +16,9 @@ update_time_stamp <- lubridate::stamp("Attendance data last updated on Tuesday, 
 
 
 shinyUI(
-  dashboardPage(skin = "black",
-    dashboardHeader(disable = TRUE),
-    dashboardSidebar(
+  pageWithSidebar(
+    headerPanel(""),
+    sidebarPanel(width = 2,
       dateRangeInput("att_dates",
                      "Select dates:",
                      start = last6weeks,
@@ -45,11 +45,16 @@ shinyUI(
                        uiOutput("school_grades_ui")
                      )
       ),
-    dashboardBody(
+    mainPanel(width = 10,
     # Boxes need to be put in a row (or column)
-    fluidRow(
-      box(plotOutput("step_plot", height = 800), width = 12)
-      )
-    )
+    tabsetPanel(
+        tabPanel("Daily Attendance",
+              plotOutput("step_plot", height = 800)
+            ),
+          tabPanel("Leader Board",
+            DT::dataTableOutput("leaders")
+            )
+          )
+        )
   )
 )

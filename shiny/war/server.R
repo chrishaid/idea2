@@ -183,6 +183,8 @@ shinyServer(function(input, output, session) {
 
     })
 
+  output$leaders <- DT::renderDataTable(attend_student_ytd)
+
 
 
 })

@@ -23,7 +23,7 @@ cron:
     - "8787:8787"
   volumes:
     - ./cron/jobs:/jobs
-    - /data
+    #- /data
   volumes_from:
     - data
     - shiny
