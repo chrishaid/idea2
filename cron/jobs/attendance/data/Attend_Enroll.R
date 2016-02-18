@@ -9,7 +9,7 @@ require(stringr)
 setwd("/jobs/attendance/data")
 
 # Load config and set other variables ####
-config <- as.data.frame(read.dcf("../../config/config.dcf"), 
+config <- as.data.frame(read.dcf("../../config/config.dcf"),
                         stringsAsFactors = FALSE)
 
 
@@ -31,8 +31,8 @@ students <- tbl(silo_ps_db, "students")
 
 
 # Get attendance ####
-attendance <- tbl(silo_ps_db, 
-                  sql(sprintf("SELECT * FROM attendance WHERE ATT_DATE>='%s'", 
+attendance <- tbl(silo_ps_db,
+                  sql(sprintf("SELECT * FROM attendance WHERE ATT_DATE>='%s'",
                               first_day
                               )
                       )
@@ -40,8 +40,8 @@ attendance <- tbl(silo_ps_db,
 
 
 # Get membership ####
-membership <- tbl(silo_ps_db, 
-                  sql(sprintf("SELECT * FROM membership WHERE CALENDARDATE>='%s'", 
+membership <- tbl(silo_ps_db,
+                  sql(sprintf("SELECT * FROM membership WHERE CALENDARDATE>='%s'",
                            first_day
                            )
                       )
@@ -51,7 +51,7 @@ membership <- tbl(silo_ps_db,
 
 # Join memeberhips and attendance ####
 member_att <- membership  %>%
-  select(STUDENTID, 
+  select(STUDENTID,
          STUDENT_NUMBER,
          SCHOOLID,
          CALENDARDATE,
@@ -63,7 +63,7 @@ member_att <- membership  %>%
                      ATT_DATE,
                      ATT_CODE,
                      PRESENCE_STATUS_CD
-                     ), 
+                     ),
             by =c("STUDENTID",
                   "CALENDARDATE" = "ATT_DATE")) %>%
   rename(STUDENTID = STUDENTID.x) %>%
@@ -75,7 +75,7 @@ member_att<-collect(member_att)
 
 
 # light munging of member_att to get final attendance table ####
-attend_student <- member_att %>% 
+attend_student <- member_att %>%
   mutate(enrolled0 = 1,
          enrolled = ifelse(ATT_CODE == "D" & !is.na(ATT_CODE), 0, enrolled0),
          present0 = ifelse(is.na(ATT_CODE), 1, 0),
@@ -83,8 +83,8 @@ attend_student <- member_att %>%
          present2 = ifelse(ATT_CODE == "H", 0.5, present1),
          present3 = ifelse(ATT_CODE %in% c("T", "E"), 1, present2),
          present = ifelse(is.na(present2), 1, present3),
-         absent = (1 - present)*enrolled, 
-         date = ymd_hms(CALENDARDATE)) %>% 
+         absent = (1 - present)*enrolled,
+         date = ymd_hms(CALENDARDATE)) %>%
   left_join(students %>%
               select(STUDENTID = ID, LASTFIRST, HOME_ROOM) %>%
                 collect(),
@@ -101,12 +101,12 @@ attend_student <- member_att %>%
          date,
          ATT_CODE,
          enrolled,
-         present, 
+         present,
          absent)
 
 names(attend_student) <- tolower(names(attend_student))
 
-# Remove punction from home room names which can cause 
+# Remove punction from home room names which can cause
 # all kinds of issues with shiny.  Who knew?
 
 attend_student <- attend_student %>%
@@ -117,31 +117,31 @@ attend_student <- attend_student %>%
 
 # Create daily and weekly attendance tables ####
 
-# by date, school, grade 
+# by date, school, grade
 attend_date_school_grade <- attend_student %>%
   group_by(date, schoolabbreviation, grade_level) %>%
-  summarize(enrolled = sum(enrolled), 
+  summarize(enrolled = sum(enrolled),
             present = sum(present),
             absent = sum(absent))
 
 # by date, by school
 attend_date_school <- attend_student %>%
   group_by(date, schoolabbreviation) %>%
-  summarize(enrolled = sum(enrolled), 
+  summarize(enrolled = sum(enrolled),
             present = sum(present),
             absent = sum(absent))
 
-# by date,  grade 
+# by date,  grade
 attend_date_grade <- attend_student %>%
   group_by(date, schoolabbreviation, grade_level) %>%
-  summarize(enrolled = sum(enrolled), 
+  summarize(enrolled = sum(enrolled),
             present = sum(present),
             absent = sum(absent))
 
 # by date, grade,  home room
 attend_date_grade_hr <- attend_student %>%
   group_by(date, schoolabbreviation, grade_level, home_room) %>%
-  summarize(enrolled = sum(enrolled), 
+  summarize(enrolled = sum(enrolled),
             present = sum(present),
             absent = sum(absent))
 
@@ -154,23 +154,23 @@ prep_att_tables <- . %>%
            pct_present_gte96 = pct_present >= .96,
            pct_present_gte97 = pct_present >= .97,
            week_in_year=week(date)
-           ) %>% 
+           ) %>%
     group_by(schoolabbreviation) %>% #Week of calculations and labels
     mutate(week_in_sy = (floor_date(date, unit="week") - min(floor_date(date, unit="week")))/dweeks(1)+1,
            week_of_date=floor_date(date, unit="week") + days(1),
            week_of_date_short_label=sprintf(
              "%s %s",
-             lubridate::month(week_of_date,label=TRUE, abbr=TRUE), 
+             lubridate::month(week_of_date,label=TRUE, abbr=TRUE),
              lubridate::day(week_of_date)
              )
-           ) %>% 
+           ) %>%
   ungroup() %>%
   arrange(week_in_sy) %>% #resort
-    mutate(week_of_date_short_label=factor(week_in_sy, 
+    mutate(week_of_date_short_label=factor(week_in_sy,
                                            labels=unique(week_of_date_short_label)
                                            )
            ) #Short Week  Label
-  
+
 # Apply prep function to attend tables ####
 att_list <- list(attend_date_school_grade,
                  attend_date_school,
@@ -181,10 +181,10 @@ att_list <- list(attend_date_school_grade,
 
 
 
-attend_date_school_grade  <- att_list[[1]] 
-attend_date_school  <- att_list[[2]] 
-attend_date_grade  <- att_list[[3]] 
-attend_date_grade_hr <- att_list[[4]] 
+attend_date_school_grade  <- att_list[[1]]
+attend_date_school  <- att_list[[2]]
+attend_date_grade  <- att_list[[3]]
+attend_date_grade_hr <- att_list[[4]]
 
 
 # Weekly and YTD ADA ####
@@ -228,8 +228,14 @@ ada_weekly_school <- attend_date_school %>%
   ) %>%
   filter(date == max(date))
 
-# student_data 
+# student_data
+current_students<-collect(students %>% filter(ENROLL_STATUS==0))
+
+names(current_students) <- tolower(names(current_students))
+
 attend_student_ytd <- attend_student %>%
+  semi_join(current_students,
+            by = "student_number") %>%
   group_by(student_number,
            lastfirst,
            grade_level,
@@ -242,8 +248,8 @@ attend_student_ytd <- attend_student %>%
   group_by(schoolabbreviation, grade_level) %>%
   mutate(ada_rank = cume_dist(ada)) %>%
   arrange(schoolabbreviation, grade_level, ada_rank)
-  
-            
+
+
 
 
 
@@ -257,15 +263,12 @@ save(attend_student,
      attend_student_ytd,
      attend_date_school_grade,
      attend_date_grade_hr,
-     attend_date_school, 
-     attend_date_grade, 
-     ada_weekly_school_grade, 
+     attend_date_school,
+     attend_date_grade,
+     ada_weekly_school_grade,
      ada_weekly_grade_hr,
      ada_weekly_school,
      file="/data/attendance.Rda")
 
 # Tell shiny to restart ####
 system('touch /srv/shiny-server/war/restart.txt')
-
-
-

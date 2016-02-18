@@ -183,7 +183,49 @@ shinyServer(function(input, output, session) {
 
     })
 
-  output$leaders <- DT::renderDataTable(attend_student_ytd)
+
+  students_filtered <- reactive({attend_student_ytd %>%
+                         filter(grade_level == input$stu_grade)
+                       })
+
+  output$student_histogram <- renderPlot(
+    student_histogram(students_filtered())
+    )
+
+  output$students <- DT::renderDataTable({
+                        x <- students_filtered()
+                        x <- brushedPoints(x, input$plot_brush)
+                        x %>%
+                          ungroup() %>%
+                          mutate(
+                            ada = round(ada,1),
+                            grade_level = as.integer(grade_level)) %>%
+                          select(
+                              Student = lastfirst,
+                              Grade = grade_level,
+                               School = schoolabbreviation,
+                               'Days Enrolled' = enrolled,
+                               'Days Present' = present,
+                               ADA = ada)
+                        },
+                        rownames = FALSE,
+                        options = list(
+                                    dom = "t"
+                                  )
+                    )
+
+  output$leaders <- DT::renderDataTable(
+                      attend_student_ytd %>% ungroup() %>%
+                        filter(ada_rank <= .1) %>%
+                        mutate(ada = round(ada,1),
+                        grade_level = as.integer(grade_level)) %>%
+                        select(Grade = grade_level,
+                               School = schoolabbreviation,
+                               'Days Enrolled' = enrolled,
+                               'Days Present' = present,
+                               ADA = ada),
+                        filter = "top",
+                        rownames = FALSE)
 
 
 

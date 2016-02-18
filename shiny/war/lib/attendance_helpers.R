@@ -64,3 +64,18 @@ enroll_attend_plot <- function(daily_data, weekly_data){
   # return
   p
 }
+
+
+# student attendance histogram
+student_histogram <- function(data) {
+  p <- ggplot(data,
+              aes(x = ada)) +
+    geom_histogram(aes(fill = ada >= 96),
+                   color = "white",
+                   binwidth = 2) +
+    facet_grid(schoolabbreviation ~ grade_level) +
+    theme_bw()
+
+  #return
+  p
+}
