@@ -15,12 +15,11 @@ RUN R -e "install.packages(c('ETLUtils', 'RJDBC'))" && \
 
 RUN apt-get update &&\
     apt-get install -t unstable -y --no-install-recommends \
-    supervisor && \
     cron && \
     cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \
     echo "America/Chicago" > /etc/timezone
 
-
+RUN apt-get install supervisor
 # add jobs
 #RUN mkdir /jobs
 COPY jobs /jobs
@@ -42,6 +41,6 @@ RUN touch /var/log/cron.log
 
 # Run the command on container startup
 CMD /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
-#CMD /usr/bin/d/supervisord -c  /etc/supervisor/conf.d/supervisord.conf &&\
+#CMD /usr/bin/:d/supervisord -c  /etc/supervisor/conf.d/supervisord.conf &&\
 #    cron && tail -f /var/log/cron.log && \
 #    chown -R rstudio:staff /data
