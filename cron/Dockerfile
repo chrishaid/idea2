@@ -40,7 +40,7 @@ RUN mkdir /data && chmod 777 /data
 RUN touch /var/log/cron.log
 
 # Run the command on container startup
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["/usr/bin/supervisord/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 #CMD /usr/bin/supervisord/supervisord -c  /etc/supervisor/conf.d/supervisord.conf &&\
 #    cron && tail -f /var/log/cron.log && \
 #    chown -R rstudio:staff /data
