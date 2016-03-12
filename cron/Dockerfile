@@ -19,7 +19,7 @@ RUN apt-get update &&\
     cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \
     echo "America/Chicago" > /etc/timezone
 
-RUN apt-get install supervisor
+#RUN apt-get install supervisor
 # add jobs
 #RUN mkdir /jobs
 COPY jobs /jobs
