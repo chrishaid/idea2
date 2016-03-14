@@ -19,7 +19,10 @@ RUN apt-get update &&\
     cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \
     echo "America/Chicago" > /etc/timezone
 
-#RUN apt-get install supervisor
+
+#RUN install supervisor
+RUN easy_install supervisor
+
 # add jobs
 #RUN mkdir /jobs
 COPY jobs /jobs
@@ -40,6 +43,7 @@ RUN mkdir /data && chmod 777 /data
 RUN touch /var/log/cron.log
 
 # Run the command on container startup
+
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 #CMD /usr/bin/:d/supervisord -c  /etc/supervisor/conf.d/supervisord.conf &&\
