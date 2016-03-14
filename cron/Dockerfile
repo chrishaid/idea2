@@ -21,7 +21,7 @@ RUN apt-get update &&\
 
 
 #RUN install supervisor
-RUN easy_install supervisor
+RUN   apt-get install -y supervisor
 
 # add jobs
 #RUN mkdir /jobs
@@ -46,6 +46,6 @@ RUN touch /var/log/cron.log
 
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
-#CMD /usr/bin/:d/supervisord -c  /etc/supervisor/conf.d/supervisord.conf &&\
+#CMD /usr/bin/supervisrd/supervisord -c  /etc/supervisor/conf.d/supervisord.conf &&\
 #    cron && tail -f /var/log/cron.log && \
 #    chown -R rstudio:staff /data
