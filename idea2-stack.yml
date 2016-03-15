@@ -9,17 +9,13 @@ authproxy:
     - shiny
   ports:
     - '80:4180'
-  volumes:
-    - /config
+  volumes_from:
+    - cron
 cron:
   image: 'chrishaid/idea2-cron:latest'
-  expose:
-    - '8787'
-  ports:
-    - '8787:8787'
   volumes:
+    - /config
     - /jobs
-    - '/config:/jobs/config'
   volumes_from:
     - data
     - shiny
@@ -33,5 +29,7 @@ shiny:
     - '3838'
   ports:
     - '3838:3838'
+  volumes:
+    - /srv/shiny-server
   volumes_from:
     - data
