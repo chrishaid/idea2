@@ -13,11 +13,11 @@ RUN apt-get update && apt-get install -y -t unstable \
 #    rm -f libssl0.9.8_0.9.8o-4squeeze14_amd64.deb
 
 # Download and install shiny server
-#RUN wget --no-verbose https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/VERSION -O "version.txt" && \
-#    VERSION=$(cat version.txt)  && \
-#    wget --no-verbose "https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/shiny-server-$VERSION-amd64.deb" -O ss-latest.deb && \
-#    gdebi -n ss-latest.deb && \
-#    rm -f version.txt ss-latest.deb
+RUN wget --no-verbose https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/VERSION -O "version.txt" && \
+    VERSION=$(cat version.txt)  && \
+    wget --no-verbose "https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/shiny-server-$VERSION-amd64.deb" -O ss-latest.deb && \
+    gdebi -n ss-latest.deb && \
+    rm -f version.txt ss-latest.deb
 
 
 RUN R -e "install.packages(c('devtools', 'dplyr', 'ggplot2', 'lubridate', 'purrr', 'RCurl', 'rmarkdown', 'shiny', 'xtable', 'Cairo', 'shinydashboard', 'DT'), repos='https://cran.rstudio.com/')"
@@ -25,6 +25,10 @@ RUN R -e "install.packages(c('devtools', 'dplyr', 'ggplot2', 'lubridate', 'purrr
 RUN R -e "devtools::install_github('hadley/readr')"
 
 RUN R -e "devtools::install_github('jennybc/googlesheets')"
+
+RUN R -e "devtools::install_github('almartin82/mapvizieR')"
+
+RUN R -e "install.packages('shiny',  repos='https://cran.rstudio.com/')"
 
 # Set timezone to Chicago
 RUN cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \

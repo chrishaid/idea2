@@ -29,7 +29,7 @@ silo_nwea_db <- src_sqlserver(server =  config$SILO_URL,
                                                password = config$SILO_PWD))
 
 
-# Pull map data 
+# Pull map data
 map_cdf <- tbl(silo_nwea_db,
                sql("SELECT * FROM MAP$comprehensive#plus_cps WHERE GrowthMeasureYN='TRUE'")
           )
@@ -42,24 +42,26 @@ map_sep <- separate_cdf(map_cdf,district_name = "KIPP Chicago")
 
 # create mapvizieR object for 2015 and 2011 norms
 
-map_mv_15 <- 
+map_mv_15 <-
   mapvizieR(
     cdf = map_sep$cdf,
     roster = map_sep$roster,
+     include_unsanctioned_windows = TRUE,
     norm_df_long = mapvizieR:::norms_students_wide_to_long(
                     student_growth_norms_2015
                     )
     )
 
-map_mv_11 <- 
+map_mv_11 <-
   mapvizieR(
     cdf = map_sep$cdf,
     roster = map_sep$roster,
+    include_unsanctioned_windows = TRUE,
     norm_df_long = mapvizieR:::norms_students_wide_to_long(
       student_growth_norms_2011
     )
   )
-          
+
 # Create summary objects
 
 map_sum_15 <- summary(map_mv_15)
@@ -80,5 +82,4 @@ save(map_mv_11,
      file="/data/map.Rda")
 
 # Tell shiny to restart ####
-#system('touch /srv/shiny-server/map/restart.txt')
-
+system('touch /srv/shiny-server/map/restart.txt')

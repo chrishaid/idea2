@@ -219,7 +219,8 @@ shinyServer(function(input, output, session) {
                         filter(ada_rank <= .1) %>%
                         mutate(ada = round(ada,1),
                         grade_level = as.integer(grade_level)) %>%
-                        select(Grade = grade_level,
+                        select(Student = lastfirst,
+                               Grade = grade_level,
                                School = schoolabbreviation,
                                'Days Enrolled' = enrolled,
                                'Days Present' = present,
