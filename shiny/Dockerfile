@@ -30,6 +30,8 @@ RUN R -e "devtools::install_github('almartin82/mapvizieR')"
 
 RUN R -e "install.packages('shiny',  repos='https://cran.rstudio.com/')"
 
+RUN R -e "install.packages('htmltools',  repos='https://cran.rstudio.com/')"
+
 # Set timezone to Chicago
 RUN cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \
     echo "America/Chicago" > /etc/timezone

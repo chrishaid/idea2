@@ -85,7 +85,10 @@ body <- dashboardBody(
                 )
               ),
               fluidRow(
-                verbatimTextOutput("brush_test")
+                div(
+                  DT::dataTableOutput("brush_test"),
+                  style = "font-size:80%"
+                  )
                 )
             ),
             tabPanel("Historical Scores",
