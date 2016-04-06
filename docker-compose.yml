@@ -39,6 +39,7 @@ data:
     #  - cron
     volumes:
      - /data
+     - ./data/config:/config
 
 #########################
 ## Web server Service  ##

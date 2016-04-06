@@ -9,12 +9,12 @@ addResourcePath('static', '/var/www/')
 require(googlesheets)
 
 # Authorize with token
-gs_auth(token="config/gs_token.rds")
+gs_auth(token="/config/gs_token.rds")
 
 system("chmod 777 .httr-oauth")
 
 message('Get recruitement and application data from google spreadsheet')
-sheetkey <- read.dcf('config//ps.dcf', fields='SHEET_KEY')[1]
+sheetkey <- read.dcf('/config//recruit.dcf', fields='SHEET_KEY')[1]
 
 sheet <- gs_key(sheetkey)
 
