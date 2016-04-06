@@ -1,10 +1,11 @@
 /**
-These are adjustments to he html and body css classes in bootstrap 
+These are adjustments to he html and body css classes in bootstrap
 to guarantee that iframes are at 100% for use at idea.kippchicago.org
  */
 
 html {
   font-family: sans-serif;
+  margin: 0;
   width: 100%; /* fix for short iframes*/
   height: 100%; /* fix for short iframes*/
   -webkit-text-size-adjust: 100%;
@@ -15,4 +16,8 @@ body {
   margin: 0;
   width: 100%; /* fix for short iframes*/
   height: 100%; /* fix for short iframes*/
+}
+
+.navbar {
+    margin-bottom: 0;
 }
