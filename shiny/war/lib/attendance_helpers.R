@@ -79,3 +79,53 @@ student_histogram <- function(data) {
   #return
   p
 }
+
+# Daily goal plot ####
+att_daily_goal_plot <-  function(.data, start_date, end_date, goals, show_goals){
+
+  date_interval <- ymd(start_date) %--% ymd(end_date)
+
+ x <- .data %>%
+   ungroup() %>%
+   filter(date %within% date_interval) %>%
+   left_join(goals, by = "schoolabbreviation") %>%
+   mutate(att_goal = round(enrolled*goal),
+          diff = present - att_goal,
+          school_goal = sprintf("%s\nGoal = %s%%",
+                                schoolabbreviation,
+                                round(100*goal,1)
+                                )
+          )
+
+  p <- ggplot(x, aes(x = date, y = diff)) +
+    geom_hline(aes(yintercept = 0), color = "gray40") +
+    geom_linerange(aes(ymin = 0, ymax = diff, color = diff<0),
+                   size = 1) +
+    geom_point(aes(color = diff<0),
+               size = 1.5) +
+    scale_color_manual(values = c("black", "red")) +
+    facet_grid(school_goal ~ .) +
+    theme_bw() +
+    guides(color = "none") +
+    labs(y = "Deviation from goal\n(Number of students)",
+         x = "Date")
+
+   if(show_goals) {
+     p <- p +
+       geom_text(data = x %>% filter(diff >= 0),
+                 aes(label = round(pct_present*100,1)),
+                 color = "black",
+                 nudge_y = 3,
+                 size=2.5,
+                 check_overlap = TRUE) +
+       geom_text(data = x %>% filter(diff<0) ,
+                 aes(label = round(pct_present*100,1)),
+                 color = "red",
+                 nudge_y = -3,
+                 size=2.5,
+                 check_overlap = TRUE)
+   }
+
+ p
+
+}

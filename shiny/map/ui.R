@@ -78,7 +78,7 @@ body <- dashboardBody(
               fluidRow(
                 plotOutput(
                   "plot",
-                   height = 500,
+                   height = 375,
                    brush = brushOpts(
                      id = "map_brush"
                      )

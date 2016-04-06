@@ -62,6 +62,21 @@ sidebar <- dashboardSidebar(
                   ),
           fluidRow(DT::dataTableOutput("students"))
           ),
+        tabPanel("Deviation from Goals",
+            fluidRow(
+              column(8,
+                plotOutput(
+                  "att_goal_plot"
+                )
+              ),
+              column(4,
+                box(checkboxInput("show_ada",
+                                    "Show ADA?",
+                                    value = FALSE)
+               )
+              )
+            )
+        ),
         tabPanel("Leader Board",
           DT::dataTableOutput("leaders")
           )

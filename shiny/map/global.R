@@ -1,13 +1,13 @@
 # global.R for session
 message("Loading libraries for global environment")
-#require(mapvizieR)
+
 require(shinydashboard)
 require(shiny)
-#require(Cairo)
-#require(lubridate)
+require(Cairo)
+require(lubridate)
 require(ggplot2)
 require(dplyr)
-#require(tidyr)
+require(tidyr)
 
 
 

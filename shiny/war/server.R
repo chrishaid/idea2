@@ -2,7 +2,12 @@
 
 source('lib/attendance_helpers.R')
 
-options(shiny.reactlog = TRUE)
+# ADA goals for each school
+goals <- data_frame(schoolabbreviation =  c("KAP", "KAMS", "KCCP", "KBCP"),
+                    goal = c(.955))
+
+
+#options(shiny.reactlog = TRUE)
 shinyServer(function(input, output, session) {
 
   # get attendance date interval
@@ -213,6 +218,16 @@ shinyServer(function(input, output, session) {
                                     dom = "t"
                                   )
                     )
+
+  output$att_goal_plot <- renderPlot({
+    att_daily_goal_plot(
+      attend_date_school,
+      input$att_dates[[1]],
+      input$att_dates[[2]],
+      goals = goals,
+      show_goals = input$show_ada)
+    })
+
 
   output$leaders <- DT::renderDataTable(
                       attend_student_ytd %>% ungroup() %>%

@@ -1,13 +1,14 @@
 # global.R for session
 message("Loading libraries for global environment")
 require(shiny)
-require(Cairo)
+library(Cairo)
 require(lubridate)
 require(ggplot2)
 require(dplyr)
 require(tidyr)
 require(shinydashboard)
 
+options(shiny.usecairo=TRUE) 
 # Shiny options
 options(shiny.usecairo = TRUE)
 
