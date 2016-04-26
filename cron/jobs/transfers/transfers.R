@@ -1,14 +1,15 @@
 # Load packages ####
 require(dplyr)
 require(RSQLServer)
-#require(readr)
 require(lubridate)
 require(purrr)
 require(stringr)
-#require(mapvizieR)
+
 
 
 setwd("/jobs/transfers")
+
+source('lib/helpers.R')
 
 # Get Config data ####
 config <- as.data.frame(read.dcf("../config/config.dcf"),
@@ -95,8 +96,14 @@ transfer_reasons<-data_frame(exitcode=as.character(c(1:11)),reason=c("Dropped Ou
 transfer_reasons <- transfer_reasons %>%
   mutate(reason = factor(reason, levels = transfer_order, ordered = TRUE))
 
-transfer_scale <- c("gray", "lightgray", 
-                    scales::brewer_pal("qual", palette = 3)(nrow(transfer_reasons)-2))
+month_order <- c("Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep")
+
+month_factor <- factor(month_order, levels = month_order, ordered = TRUE)
+
+scaffold <- expand.grid(sy = unique(transfers_by_day_by_code$sy),
+                        schoolid.x = unique(transfers_by_day_by_code$schoolid.x),
+                        exit_month = month_factor, 
+                        exitcode = unique(transfers_by_day_by_code$exitcode))
 
 
 transfers_by_month_2 <- scaffold %>%
@@ -104,23 +111,39 @@ transfers_by_month_2 <- scaffold %>%
   left_join(transfer_reasons, by="exitcode")%>% 
   group_by(sy, schoolid.x,  exitcode) %>% 
   mutate(cum_transfers_2 = as.integer(zoo::na.locf(cum_transfers, na.rm = FALSE)),
-         month = factor(exit_month, levels = month_order, ordered=  TRUE))
+         month = factor(exit_month, levels = month_order, ordered=  TRUE)) %>%
+  ungroup() %>%
+  mutate(sy = factor(sy, levels = rev(unique(sy)), ordered = TRUE),
+         school_name = school_names(schoolid.x)
+         ) %>%
+  arrange(sy, school_name, month, desc(reason))
 
-todays_month <- month(today(), label = TRUE, abbr = TRUE) %>%
-  factor(levels = month_order, ordered = TRUE)
+
+
+transfer_goals <- enrolled %>% 
+  group_by(schoolid, calendardate) %>%
+  summarize(N = n()) %>%
+  mutate(yearly_goal = round(.1 * N),
+         monthly_goal = yearly_goal/12,
+         sy2 = sprintf("%s-%s",
+                      year(ymd_hms(calendardate)),
+                      year(ymd_hms(calendardate))+1),
+         sy = factor(sy2, levels=rev(unique(sy2)), ordered = TRUE),
+         schoolid.x=schoolid,
+         school_name = school_names(schoolid)
+  )
 
 
 
+save(transfers_by_month_2,
+     transfer_goals,
+     transfer_reasons,
+     transfers_by_month_by_code,
+     transfers_by_month,
+     transfers_by_day_by_code,
+     transfers_by_day,
+     file="/data/transfers.Rda")
 
-ggplot(transfers_by_month_2 %>%
-         filter(!(month > todays_month &
-                  sy == "2015-2016")
-                ), 
-       aes(x = month, y=cum_transfers_2)) +
-  geom_bar(aes(fill = reason, y=cum_transfers_2), 
-            position = "stack",
-            stat = "identity") +
-  facet_grid(sy ~ schoolid.x) +
-  scale_fill_manual(values = rev(transfer_scale)) +
-  theme_light()
+system("touch /srv/shiny-server/war/restart.txt")
+
 

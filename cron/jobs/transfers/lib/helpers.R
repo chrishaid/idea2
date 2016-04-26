@@ -39,5 +39,22 @@ get_membership_on_date <- function(con, date, offset = 0) {
 
 
 
-#GEt member ship on a certian day
+# add schools' names
+school_names <- function(school_number, as_factor = TRUE){
+  
+  names_lookup <- function(x) {
+    switch(as.character(x),
+           "78102" = "KAP",
+           "7810" = "KAMS",
+           "400146" = "KCCP",
+           "400163" = "KBCP")
+  }
+  out <- vapply(school_number, FUN = names_lookup, "character")
+  if(as_factor) out <- factor(out, levels = c("KAP", "KAMS", "KCCP", "KBCP"))
+  
+  out
+                              
+}
+
+
 

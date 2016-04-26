@@ -8,12 +8,14 @@ require(dplyr)
 require(tidyr)
 require(shinydashboard)
 
-options(shiny.usecairo=TRUE) 
+
 # Shiny options
 options(shiny.usecairo = TRUE)
 
 # load attendance data
 load("/data/attendance.Rda")
+
+load("/data/transfers.Rda")
 
 schools <- unique(ada_weekly_school$schoolabbreviation)
 
@@ -21,3 +23,5 @@ grades <- list(KAP = 0:5,
                KAMS = 6:8,
                KCCP = 5:8,
                KBCP = 5:7)
+
+month_order <- c("Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep")               

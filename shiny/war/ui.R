@@ -17,76 +17,110 @@ update_time_stamp <- lubridate::stamp("Attendance data last updated on Tuesday, 
 header <- dashboardHeader(disable=TRUE)
 
 sidebar <- dashboardSidebar(
-  dateRangeInput("att_dates",
-                 "Select dates:",
-                 start = last6weeks,
-                 end = thisweek,
-                 min = firstweek,
-                 max = thisweek,
-                 format = "mm-dd-yyyy"
-                ),
-  radioButtons("att_level",
-               "Select level:",
-               choices = c("School" = "school",
-                           "Grade" = "grade",
-                           "Home Room" = "hr"),
-               selected = "School"),
-  conditionalPanel(condition = "input.att_level == 'grade' |
-                                  input.att_level == 'hr'",
-                   radioButtons("att_school",
-                               "Select school:",
-                               choices = schools,
-                               selected = "KAMS")
-                               ),
-  conditionalPanel(condition = "input.att_level == 'hr'",
-                   uiOutput("school_grades_ui"))
+  width = 131,
+  sidebarMenu(
+    menuItem("Attendance",
+            tabName = "attendance",
+            selected = TRUE,
+            icon = icon("calendar")
+            ),
+
+    menuItem("Transfers",
+             tabName = "transfers",
+             icon = icon("hand-peace-o")
+             )
+    )
+
   )
 
   body <- dashboardBody(
-    tabsetPanel(
-      tabPanel("Daily Attendance",
-            plotOutput("step_plot", height = 800)
-          ),
-        tabPanel("Students",
-          fluidRow(column(3, selectInput("stu_grade",
-                               "Select Grade",
-                               choices  = 0:8,
-                               selected = 5)),
-                  column(9, plotOutput("student_histogram",
-                                        height = 200,
-                                        brush = brushOpts(
-                                                  id = "plot_brush",
-                                                  direction = "x")
-                                        )
-                        )
-                  ),
-          fluidRow(DT::dataTableOutput("students"))
-          ),
-        tabPanel("Deviation from Goals",
+
+    tabItems(
+      tabItem("attendance",
+        tabsetPanel(
+          tabPanel("Daily Attendance",
             fluidRow(
-              column(8,
-                plotOutput(
-                  "att_goal_plot"
-                )
-              ),
-              column(4,
-                box(checkboxInput("show_ada",
-                                    "Show ADA?",
-                                    value = FALSE)
-               )
-              )
-            )
+                column(3,
+                  dateRangeInput(
+                    "att_dates",
+                    "Select dates:",
+                    start = last6weeks,
+                    end = thisweek,
+                    min = firstweek,
+                    max = thisweek,
+                    format = "mm-dd-yyyy"
+                   )
+                 ),
+            column(2, selectInput("att_level",
+                         "Select level:",
+                         choices = c("School" = "school",
+                                     "Grade" = "grade",
+                                     "Home Room" = "hr"),
+                         selected = "School")),
+            column(2, conditionalPanel(condition = "input.att_level == 'grade' |
+                                            input.att_level == 'hr'",
+                             selectInput("att_school",
+                                         "Select school:",
+                                         choices = schools,
+                                         selected = "KAMS")
+                                         )),
+            column(2,conditionalPanel(condition = "input.att_level == 'hr'",
+                             uiOutput("school_grades_ui"))
+                    )
+
         ),
-        tabPanel("Leader Board",
-          DT::dataTableOutput("leaders")
+
+            fluidRow(
+              column(12, plotOutput("step_plot", height = 700))
+              )
+          ),
+          tabPanel("Students",
+              fluidRow(column(3, selectInput("stu_grade",
+                                   "Select Grade",
+                                   choices  = 0:8,
+                                   selected = 5)),
+                      column(9, plotOutput("student_histogram",
+                                            height = 200,
+                                            brush = brushOpts(
+                                                      id = "plot_brush",
+                                                      direction = "x")
+                                            )
+                            )
+                      ),
+              fluidRow(DT::dataTableOutput("students"))
+              ),
+            tabPanel("Deviation from Goals",
+                fluidRow(
+                  column(8,
+                    plotOutput(
+                      "att_goal_plot"
+                    )
+                  ),
+                  column(4,
+                    box(checkboxInput("show_ada",
+                                        "Show ADA?",
+                                        value = FALSE)
+                    )
+                  )
+                )
+            ),
+            tabPanel("Leader Board",
+              DT::dataTableOutput("leaders")
+            )
           )
-        )
+        ),
+
+      tabItem("transfers",
+              plotOutput("transfer_plot",
+                         height = 600)
+              )
       )
+    )
+
+
+
 
 
 shinyUI(
-
-
-
   dashboardPage(header, sidebar, body)
 )

@@ -244,5 +244,43 @@ shinyServer(function(input, output, session) {
                         rownames = FALSE)
 
 
+# Transfers #################################################################
+
+  output$transfer_plot <- renderPlot({
+
+    
+    todays_month <- month(today(), label = TRUE, abbr = TRUE) %>%
+      factor(levels = month_order, ordered = TRUE)
+
+    transfer_scale <- c(scales::brewer_pal("qual", palette = 3)(nrow(transfer_reasons)-3),
+                        "gray",
+                        "lightgray"
+                        )
+
+
+    ggplot(transfers_by_month_2 %>%
+             filter(!(month > todays_month &
+                      sy == "2015-2016")
+                    ),
+           aes(x = month, y=cum_transfers_2)) +
+      geom_bar(aes(fill = factor(reason), y=cum_transfers_2),
+                position = "stack",
+                stat = "identity") +
+      geom_segment(data = transfer_goals,
+                   aes(x=1, xend=12,
+                       y=monthly_goal, yend= yearly_goal),
+                   alpha = .6,
+                   color = "purple") +
+      facet_grid(sy ~ school_name) +
+      scale_fill_manual(values = transfer_scale) +
+      theme_light() +
+      theme(axis.text.x = element_text(angle=45, hjust = 1)) +
+      labs(fill = "Transfer\nReason",
+           x = "Month",
+           y = "Cumulative transfers\n(count)")
+
+    })
+
+
 
 })
