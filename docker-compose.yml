@@ -69,3 +69,4 @@ shiny:
   volumes:
     - ./shiny/war/:/srv/shiny-server/war
     - ./shiny/map/:/srv/shiny-server/map
+    - ./shiny/recruit/:/srv/shiny-server/recruit

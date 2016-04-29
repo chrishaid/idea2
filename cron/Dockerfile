@@ -5,8 +5,10 @@ MAINTAINER Chris Haid <chaid@kippchicago.org>
 # add R packages necessary for jobs to run.
 
 RUN R -e "install.packages(c('ETLUtils', 'RJDBC'))" && \
-    R -e "devtools::install_github('chrishaid/RSQLServer')" && \
-    R -e "devtools::install_github('almartin82/mapvizieR')"
+    R -e "devtools::install_github('chrishaid/RSQLServer')"
+
+RUN R -e "devtools::install_github('jennybc/googlesheets')"
+
 
 # add Python for scripts that require python
 

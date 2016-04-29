@@ -4,190 +4,63 @@
 # creates absoulute path to static resources for IDEA
 addResourcePath('static', '/var/www/')
 
-####  Sessionwide Data ####
-# CPS Impact ####
-require(googlesheets)
-
-# Authorize with token
-gs_auth(token="/config/gs_token.rds")
-
-system("chmod 777 .httr-oauth")
-
-message('Get recruitement and application data from google spreadsheet')
-sheetkey <- read.dcf('/config//recruit.dcf', fields='SHEET_KEY')[1]
-
-sheet <- gs_key(sheetkey)
-
-apps<-sheet %>% gs_read(ws = "IDEA")
-
-
-apps<-apps %>% mutate(Focus = ((school=="KAP" & grade =="5") |
-                        (school=="KAMS" & grade== "6") |
-                        (school=="KAMS" & grade== "6") |
-                        (school=="KCCP" & grade %in% c("5","6")) |
-                        (school=="KBCP" & grade %in% c("5","6")))
-                        )
-
-message('Munchge recruitment /  applications table')
-#apps<-data.table(apps)
-colnames(apps) <- c("School", "Grade", "AppsYTD.1516","AppsYTD.1415", "AppsYTD.1314", "Seats.available", "Seats.filled", "Focus")
-
-regs<-apps %>% select(School, Grade, Seats.available, Seats.filled)
-
-
-# Applications ####
-apps<-apps %>% select(School, Grade, AppsYTD.1516, AppsYTD.1415, AppsYTD.1314, Focus)
-
-apps_grouped <- group_by(apps, School)
-apps_schools <- apps_grouped %>%
-  summarize(AppsYTD.1516=sum(AppsYTD.1516),
-            AppsYTD.1415=sum(AppsYTD.1415),
-            AppsYTD.1314=sum(AppsYTD.1314)) %>%
-  mutate(Grade="All",
-         Focus=FALSE)
-
-app_chi <- apps_schools  %>%
-  summarize(AppsYTD.1516=sum(AppsYTD.1516),
-            AppsYTD.1415=sum(AppsYTD.1415),
-            AppsYTD.1314=sum(AppsYTD.1314)) %>%
-  mutate(School="KIPP Chicago", Grade="All", Focus=FALSE)
-
-apps<-rbind(apps, app_chi, apps_schools) %>%
-  mutate(Diff_1516_1415=AppsYTD.1516 - AppsYTD.1415,
-         Diff_1516_1314=AppsYTD.1516 - AppsYTD.1314,
-         School=factor(School, levels = c("KAP", "KAMS", "KCCP", "KBCP", "KIPP Chicago")),
-         Grade=factor(Grade, levels=c("K", "1", "2", "3", "4", "5", "6", "7", "8", "All"))
-         )
-
-apps_tbl <- dplyr::rename_(apps,
-                       "YTD 2015-16"="AppsYTD.1516",
-                       "YTD 2014-15"="AppsYTD.1415",
-                       "YTD 2013-14"="AppsYTD.1314",
-                       "Diff (1 yr)" = "Diff_1516_1415",
-                       "Diff (2 yr)" = "Diff_1516_1314") %>%
-  arrange(School, Grade)
-
-ggApps<-ggplot(apps %>% filter(Grade!="All"),
-               aes(x=Grade, y=Diff_1516_1314)) +
-  geom_bar(aes(fill=Diff_1516_1314>=0),
-           stat="identity") +
-  scale_fill_manual(values=c("firebrick", "#439539")) +
-  facet_grid(.~School,
-             scales="free_x",
-             space="free_x") +
-  theme_bw() +
-  ylab("Differnece (2015-16 and 2013-14)")
-
-
-regs_on<-TRUE
-if (regs_on){
-  # Registration ####
-  message("Getting regs data")
-
-  regs_grouped <- group_by(regs, School)
-
-  regs_schools <- regs_grouped %>%
-    summarize(Seats.available=sum(Seats.available),
-              Seats.filled=sum(Seats.filled)) %>%
-    mutate(Grade="All")
-
-  regs_chi <- regs_schools %>%
-    summarize(Seats.available=sum(Seats.available),
-              Seats.filled=sum(Seats.filled)) %>%
-    mutate(School="KIPP Chicago", Grade="All")
-
-  regs<-rbind(regs, regs_schools, regs_chi)
-
-  regs <- regs %>%
-    mutate(Pct.filled=round(Seats.filled/Seats.available*100,1),
-           School=factor(School, levels = c("KAP", "KAMS", "KCCP", "KBCP", "KIPP Chicago")),
-           Grade=factor(Grade, levels=c("K", "1", "2", "3", "4", "5", "6", "7", "8", "All"))
-    ) %>%
-    dplyr::rename_("Seats Filled" = "Seats.filled",
-                   "Seats Available"  = "Seats.available",
-                   "Percent Filled" = "Pct.filled") %>%
-    arrange(School, Grade)
-
-  regs2<-regs
-
-  colnames(regs2)[3:5] <- c("Available", "Filled", "Pct")
-
-  ggRegs <-
-    ggplot(regs2 %>% filter(Grade %in% c("K", "5")),
-           aes(x=Grade, y=Available)) +
-    geom_bar(aes(y=Filled),
-             fill="green",
-             color="green",
-             stat="identity",
-             alpha = .5) +
-    geom_bar(fill=NA,
-             color="black",
-             stat="identity") +
-    geom_text(aes(x=Grade, y=Available-3,
-                  label=paste0(Pct, "% Filled")
-    ),
-    vjust=1
-    ) +
-    #scale_fill_manual(values=c("firebrick", "#439539")) +
-    facet_grid(.~School,
-               scales="free_x",
-               space="free_x") +
-    theme_bw() +
-    ylab("Seats")
-
-}
+load('/data/recruiting.Rda')
 
 
 #### Shiny Server output code ####
 shinyServer(function(input, output) {
 
-  apps_table <- reactive(
-    if (input$focusGrades){
-      apps_tbl %>%
-        filter(Focus==TRUE) %>%
-        select(-Focus)
+    output$plotRegs<-renderPlot({
+      ggplot(reg_goals_actual, aes(x=date_eow, y=goal)) +
+          geom_bar(stat="identity", fill = NA, color = "black") +
+          geom_bar(aes(y=actual, fill=cols, color = cols), stat="identity") +
+          geom_hline(aes(yintercept = overall_reg_goal)) +
+          scale_fill_identity(guide="none") +
+          scale_color_identity(guide="none") +
+          facet_wrap(school ~ grade, scales = "free_y") +
+          theme_bw() +
+          labs(x = "Date",
+               y = "Count")
+
+      })
+
+    output$reg_data <- renderPrint({input$reg_hover})
+
+
+    output$reg_tbl <- renderText({
+      if(is.null(input$reg_hover)) {
+
+        #data_frame("Hover near bars for data" = NA)
+      return("Hover near bars for data")
       } else {
-        apps_tbl %>%
-          select(-Focus)
-        })
+
+      reg_data  <- nearPoints(reg_goals_actual, input$reg_hover,threshold = 10, maxpoints = 1)
 
 
-  apps_plot_data <- reactive(
-    if (input$focusGrades) {
-      apps %>%
-      filter(Focus==TRUE)
-      } else {
-        apps %>%
-          select(-Focus)
-        }
-    )
+      html_text <- sprintf(
+        "<b>School:</b> %s<br>
+         <b>Grade:</b> %s<br>
+         <b>Date:</b> %s<br>
+         <b>Goal:</b> %s<br>
+         <b>Actual:</b> %s<br>
+         <b>Overall Goal:</b> %s<br>
+         <b>Percent of current goal:</b> %s%%<br>
+         <b>Percent of overall goal:</b> %s%%<br>
+         <b>Forgone/gained budget:</b> %s
+        ",
+        reg_data$school,
+        reg_data$grade,
+        reg_data$date_eow,
+        reg_data$goal,
+        reg_data$actual,
+        reg_data$overall_reg_goal,
+        round(100*reg_data$pct_of_goal,1),
+        round(100*reg_data$actual/reg_data$overall_reg_goal,1),
+        scales::dollar(7000*(reg_data$actual - reg_data$overall_reg_goal))
+        )
 
-
-
-  output$tblApps<-renderDataTable(apps_table(),
-                           options = list(bSortClasses=TRUE,
-                                          "sDom"='T<"clear">lfrtip',
-                                          "oTableTools"=list(
-                                          "sSwfPath"="static/swf/copy_csv_xls_pdf.swf")
-                                          )
-                           )
-
-  output$plotApps<-renderPlot(ggApps %+% apps_plot_data())
-
-  if (regs_on){
-    output$tblRegs<-renderDataTable(regs,
-                                    options = list(bSortClasses=TRUE,
-                                                   "sDom"='T<"clear">lfrtip',
-                                                   "oTableTools"=list(
-                                                     "sSwfPath"="static/swf/copy_csv_xls_pdf.swf")
-                                                   )
-                                    )
-
-    output$plotRegs<-renderPlot(print(ggRegs))
-  }
-
-
-
-
-  }
+      HTML(html_text)
+    }
+      })
+    }
 )
