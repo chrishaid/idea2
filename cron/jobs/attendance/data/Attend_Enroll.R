@@ -9,7 +9,7 @@ require(stringr)
 setwd("/jobs/attendance/data")
 
 # Load config and set other variables ####
-config <- as.data.frame(read.dcf("../../config/config.dcf"),
+config <- as.data.frame(read.dcf("/config/config.dcf"),
                         stringsAsFactors = FALSE)
 
 

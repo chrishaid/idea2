@@ -9,6 +9,8 @@ RUN R -e "install.packages(c('ETLUtils', 'RJDBC'))" && \
 
 RUN R -e "devtools::install_github('jennybc/googlesheets')"
 
+RUN R -e "devtools::install_github('almartin82/mapvizieR')"
+
 
 # add Python for scripts that require python
 

@@ -27,6 +27,7 @@ body <- dashboardBody(
 
   tabItems(
     tabItem("registration",
+      h4("Student Regristration Goals and Results"),
       fluidRow(
         column(
           7,
@@ -38,7 +39,20 @@ body <- dashboardBody(
         column(5,box(htmlOutput("reg_tbl")))
       )
     ),
-    tabItem("eif")
+    tabItem("eif",
+      h4("Enrollment Intent Form Goals and Results"),
+      fluidRow(
+        column(
+          7,
+          plotOutput("plotEIFs",
+                     hover="eif_hover",
+                     height = 600
+                    )
+          ),
+        column(5,box(htmlOutput("eif_tbl")))
+      )
+
+    )
   )
 )
 

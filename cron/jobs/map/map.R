@@ -12,7 +12,8 @@ setwd("/jobs/map")
 source("lib/helpers.R")
 
 # Load config and set other variables ####
-config <- as.data.frame(read.dcf("../config/config.dcf"),
+print("Working here too!")
+config <- as.data.frame(read.dcf("/config/config.dcf"),
                         stringsAsFactors = FALSE)
 
 
