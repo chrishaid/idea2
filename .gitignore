@@ -11,4 +11,4 @@
 *.rds
 
 # httr_oath files
-.httr_oauth
+.httr-oauth
