@@ -11,6 +11,9 @@ RUN R -e "devtools::install_github('jennybc/googlesheets')"
 
 RUN R -e "devtools::install_github('almartin82/mapvizieR')"
 
+RUN R -e "devtools::install_github('rstudio/flexdashboard')"
+
+RUN R -e "devtools::install_github('rstudio/DT')"
 
 # add Python for scripts that require python
 

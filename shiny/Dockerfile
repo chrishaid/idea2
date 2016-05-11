@@ -32,6 +32,10 @@ RUN R -e "install.packages('shiny',  repos='https://cran.rstudio.com/')"
 
 RUN R -e "install.packages('htmltools',  repos='https://cran.rstudio.com/')"
 
+RUN R -e "devtools::install_github('rstudio/flexdashboard')"
+
+RUN R -e "devtools::install_github('rstudio/DT')"
+
 # Set timezone to Chicago
 RUN cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \
     echo "America/Chicago" > /etc/timezone
