@@ -9,7 +9,7 @@ runtime: shiny
 ```{r setup, include=FALSE}
 
 library(dplyr)
-#library(lubridate)
+library(lubridate)
 library(ggplot2)
 library(flexdashboard)
 #library(shiny)
@@ -80,7 +80,6 @@ output$detail <-renderTable({
       # renderTable options
       include.rownames = FALSE,
       digits = 0
-
 )
 ```
 
