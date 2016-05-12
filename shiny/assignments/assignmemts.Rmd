@@ -42,34 +42,33 @@ sliderInput("min_f", "Minimum F", 0, min = 0, max = 69, step=5)
 ```
 **Select a student's assignments to see detail**
 ```{r}
-verbatimTextOutput("detail")
+div(tableOutput("detail"), style = "font-size:75%")
 
 
-output$detail <-renderPrint({
+output$detail <-renderTable({
       req(input$plot_brush)
 
-      #all_brush <- 
-        x<-brushedPoints(ass_adj(), input$plot_brush)
+      all_brush <- brushedPoints(ass_adj(), input$plot_brush)
 
-      x
 
-      # all_brush %>%
-      #   filter(course_number == input$course) %>%
-      #   ungroup() %>%
-      #   mutate(cum_weighted_avg = round(cum_weighted_avg*100,1),
-      #          Score = round(weighted_percent*100,1),
-      #          Date = format(date, format = "%b %e")) %>%
-      #   select(Date,
-      #          Name = abbreviation, Score ,
-      #          "Cum Avg"= cum_weighted_avg,
-      #          "Cum Grade" = cum_grade) %>%
-      #   arrange(Date)},
-      # 
-      # # renderTable options
-      # include.rownames = FALSE,
-      # digits = 0
 
-})
+      all_brush %>%
+        filter(course_number == input$course) %>%
+        ungroup() %>%
+        mutate(cum_weighted_avg = round(cum_weighted_avg*100,1),
+               Score = round(weighted_percent*100,1),
+               Date = format(date, format = "%b %e")) %>%
+        select(Date,
+               Name = abbreviation, Score ,
+               "Cum Avg"= cum_weighted_avg,
+               "Cum Grade" = cum_grade) %>%
+        arrange(Date)},
+
+      # renderTable options
+      include.rownames = FALSE,
+      digits = 0
+
+)
 ```
 
 Column {.tabset .tabset-fade}
