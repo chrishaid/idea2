@@ -45,10 +45,13 @@ sliderInput("min_f", "Minimum F", 0, min = 0, max = 69, step=5)
 div(tableOutput("detail"), style = "font-size:75%")
 
 
+selectedRows <- reactive({brushedPoints(ass_adj(), input$plot_brush)})
+
+
 output$detail <-renderTable({
       req(input$plot_brush)
 
-      all_brush <- brushedPoints(ass_adj(), input$plot_brush)
+      all_brush <- selectedRows()
 
 
 
