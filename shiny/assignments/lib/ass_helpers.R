@@ -1,20 +1,20 @@
 # Calc summary stats
 calc_cums <- function(data) {
-  
+
   grade_order <- rev(c("A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "F"))
   grade_cols <- scales::brewer_pal("div", "RdYlGn")(length(grade_order))
-  
-  grade_scale <- data_frame(grade_order = factor(grade_order, levels = grade_order), 
+
+  grade_scale <- data_frame(grade_order = factor(grade_order, levels = grade_order),
                             grade_cols)
-  
+
   quarter_dates <- as.POSIXlt(c("2015-08-15",
                                 "2015-10-31",
                                 "2016-01-31",
                                 "2016-04-04",
                                 "2016-06-16"))
-  
+
   quarters <- c("Q1", "Q2", "Q3", "Q4")
-  
+
   data %>%
     mutate(date = ymd_hms(datedue),
            quarter = cut.POSIXt(date, breaks = quarter_dates, labels = quarters),
@@ -41,9 +41,9 @@ calc_cums <- function(data) {
     ) %>%
     filter(n()>5) %>%
     inner_join(grade_scale, by = c("grade" = "grade_order"))
-  
+
 }
-  
+
 
 
 # Function to set floor on scores for Fs
@@ -60,62 +60,62 @@ adj_fs <- function(ass_data, min_f = 65) {
 # histogram
 
 ass_plot <- function(ass_data, course, quarter = "Q2"){
-  
-  quarter_in <- quarter 
+
+  quarter_in <- quarter
 
   ass_data <- ass_data %>% filter(quarter == quarter_in,
                                   course_number == course)
-  
-  
+
+
   # ass_data_max_dates <- ass_data %>%
   #   group_by(course_number, studentid, lastfirst) %>%
   #   filter(cum_weighted_points_possible == max(cum_weighted_points_possible),
   #          course_number == course)
-  
+
   grade_order <- rev(c("A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "F"))
   grade_cols <- scales::brewer_pal("div", "RdYlGn")(length(grade_order))
-  
-  grade_scale <- data_frame(grade_order = factor(grade_order, levels = grade_order), 
+
+  grade_scale <- data_frame(grade_order = factor(grade_order, levels = grade_order),
                             grade_cols)
-  
-  ass_data_max_dates <- ass_data %>% 
+
+  ass_data_max_dates <- ass_data %>%
     current_cum_grade
-  
+
   ordered_names <- ass_data_max_dates %>% ungroup() %>%
-    select(lastfirst, cum_weighted_avg) %>% 
-    arrange(cum_weighted_avg) 
-  
-  ass_data_max_dates <- ass_data_max_dates %>% ungroup() %>% 
+    select(lastfirst, cum_weighted_avg) %>%
+    arrange(cum_weighted_avg)
+
+  ass_data_max_dates <- ass_data_max_dates %>% ungroup() %>%
     mutate(lastfirst = factor(lastfirst, levels = ordered_names$lastfirst))
-  
-  
+
+
   ass_data <- ass_data %>% ungroup() %>%
     mutate(lastfirst = factor(lastfirst, levels = ordered_names$lastfirst),
            date = ymd(date))
-  
+
   min_date <- min(ass_data$date)
   max_date <- max(ass_data$date)
-  
+
   mid_date <- min_date + (max_date - min_date)/2
-  
+
   school <- str_extract(course, "kams|kccp|kbcp")  %>% str_to_upper()
-  grade <- str_extract(course, "\\d{1}")  
+  grade <- str_extract(course, "\\d{1}")
   cname <- str_replace(course, ".+\\d{1}(.+)", "\\1") %>% str_to_upper()
-  
+
   title_text <- sprintf("%s | %s | %s",
                         school,
                         grade,
                         cname)
-  
-  
-  p_scores <- ggplot(ass_data %>% filter(!is.na(lastfirst)), 
+
+
+  p_scores <- ggplot(ass_data %>% filter(!is.na(lastfirst)),
                      aes(x=date, y=weighted_percent)) +
     geom_text(data = ass_data_max_dates,
               aes(y=0, x= mid_date,
                   label=round(cum_weighted_avg*100),
                   color=grade_cols
               ),
-              alpha = .5, 
+              alpha = .5,
               size = 12,
               vjust = 0,
               show.legend =FALSE) +
@@ -128,26 +128,28 @@ ass_plot <- function(ass_data, course, quarter = "Q2"){
                          guide = "legend") +
     scale_shape_manual(values=c(16,21)) +
     theme_bw() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     labs(title = title_text,
          x = "Date",
          y = "Percent",
          color = "Grade",
          shape = "Exempt",
          size = "Relative Weight")
-  
-  
+
+
   p_histo<-ggplot(ass_data_max_dates,
                   aes(x=cum_grade)) +
     geom_bar(aes(fill = grade_cols)) +
     scale_fill_identity() +
-    theme_bw()
-  
+    theme_bw() +
+    labs(x = "Current Grade",
+         y = "# of Students")
+
   out <- list()
-  
+
   out$ass <- p_scores
   out$histo <- p_histo
-  
+
   out
 }
 
@@ -157,16 +159,16 @@ ass_plot <- function(ass_data, course, quarter = "Q2"){
 current_cum_grade <- function(data) {
   grade_order <- rev(c("A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "F"))
   grade_cols <- scales::brewer_pal("div", "RdYlGn")(length(grade_order))
-  
-  grade_scale <- data_frame(grade_order = factor(grade_order, levels = grade_order), 
+
+  grade_scale <- data_frame(grade_order = factor(grade_order, levels = grade_order),
                             grade_cols)
-  
-  data %>% 
+
+  data %>%
     group_by(course_number, studentid, lastfirst) %>%
     filter(ymd(date)==max(ymd(date))) %>%
     filter(assignmentid == max(assignmentid),
            !is.na(lastfirst)) %>%
     select(-starts_with("grade_cols")) %>%
     inner_join(grade_scale, by = c("cum_grade" = "grade_order"))
-  
+
 }

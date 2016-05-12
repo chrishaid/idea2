@@ -1,18 +1,18 @@
 ---
 title: "Grades Explorer"
-output: 
+output:
   flexdashboard::flex_dashboard:
     orientation: columns
 runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
-library(flexdashboard)
-library(ggplot2)
+
 library(dplyr)
 library(stringr)
 library(lubridate)
-library(DT)
+library(flexdashboard)
+library(ggplot2)
 
 # Load assignments data
 load("/data/assignments.Rda")
@@ -45,62 +45,62 @@ div(tableOutput("detail"), style = "font-size:75%")
 
 output$detail <-renderTable({
       req(input$plot_brush)
-  
+
       all_brush <- brushedPoints(ass_adj(), input$plot_brush)
-      
-      
-      
-      all_brush %>% 
-        filter(course_number == input$course) %>% 
+
+
+
+      all_brush %>%
+        filter(course_number == input$course) %>%
         ungroup() %>%
         mutate(cum_weighted_avg = round(cum_weighted_avg*100,1),
                Score = round(weighted_percent*100,1),
                Date = format(date, format = "%b %e")) %>%
-        select(Date, 
-               Name = abbreviation, Score , 
-               "Cum Avg"= cum_weighted_avg, 
+        select(Date,
+               Name = abbreviation, Score ,
+               "Cum Avg"= cum_weighted_avg,
                "Cum Grade" = cum_grade) %>%
         arrange(Date)},
-      
+
       # renderTable options
       include.rownames = FALSE,
       digits = 0
-      
+
 )
 ```
 
 Column {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
-### Bubbles {.no-padding}
+### Assignments Grades {.no-padding}
 
 ```{r}
 
-plotOutput("bubbles", 
+plotOutput("bubbles",
             brush = brushOpts(id = "plot_brush", direction = "x"))
 
 ass_adj <- reactive({
-  
-        assignments %>% 
+
+        assignments %>%
           ungroup() %>%
           filter(course_number == input$course) %>%
           adj_fs(input$min_f) %>%
           select(-starts_with("grade_cols")) %>%
-          calc_cums 
-       
-      
+          calc_cums
+
+
     })
 
 p <- reactive({ass_plot(ass_adj(), quarter = input$quarter, course = input$course)})
 
 
-output$bubbles <-renderPlot({p()$ass}) 
- 
+output$bubbles <-renderPlot({p()$ass})
+
 
 
 ```
 
-### Grades Histogram 
+### Grades Histogram
 
 ```{r}
 
@@ -131,8 +131,3 @@ output$tab <- renderTable({
 
 
 ```
-
-
-
-
-

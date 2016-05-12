@@ -34,7 +34,7 @@ shinyServer(function(input, output) {
       return("Hover near bars for data")
       } else {
 
-      reg_data  <- nearPoints(reg_goals_actual, input$reg_hover,threshold = 10, maxpoints = 1)
+      reg_data  <- nearPoints(reg_goals_actual, input$reg_hover,threshold = 20, maxpoints = 1)
 
 
       html_text <- sprintf(
