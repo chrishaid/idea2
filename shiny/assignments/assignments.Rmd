@@ -1,5 +1,5 @@
 ---
-title: "Grades Explorer"
+title: "Instructional Data Explorer"
 output:
   flexdashboard::flex_dashboard:
     orientation: columns
@@ -44,7 +44,7 @@ sliderInput("min_f", "Minimum F", 0, min = 0, max = 69, step=5)
 div(tableOutput("detail"), style = "font-size:75%")
 
 
-selectedRows <- reactive({brushedPoints(ass_adj(), input$plot_brush)})
+selectedRows <- reactive({brushedPoints(p()$ass$data, input$plot_brush)})
 
 
 output$detail <-renderTable({
@@ -81,7 +81,8 @@ Column {.tabset .tabset-fade}
 ```{r}
 
 plotOutput("bubbles",
-            brush = brushOpts(id = "plot_brush", direction = "x"))
+            brush = brushOpts(id = "plot_brush", direction = "x"),
+            height = 800)
 
 ass_adj <- reactive({
 
