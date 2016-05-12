@@ -98,9 +98,9 @@ ass_plot <- function(ass_data, course, quarter = "Q2"){
 
   mid_date <- min_date + (max_date - min_date)/2
 
-  school <- str_extract(course, "kams|kccp|kbcp")  %>% str_to_upper()
-  grade <- str_extract(course, "\\d{1}")
-  cname <- str_replace(course, ".+\\d{1}(.+)", "\\1") %>% str_to_upper()
+  school <- stringr::str_extract(course, "kams|kccp|kbcp")  %>%  stringr::str_to_upper()
+  grade <-  stringr::str_extract(course, "\\d{1}")
+  cname <-  stringr::str_replace(course, ".+\\d{1}(.+)", "\\1") %>%  stringr::str_to_upper()
 
   title_text <- sprintf("%s | %s | %s",
                         school,

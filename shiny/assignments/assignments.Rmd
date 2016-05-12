@@ -9,7 +9,6 @@ runtime: shiny
 ```{r setup, include=FALSE}
 
 library(dplyr)
-library(stringr)
 library(lubridate)
 library(ggplot2)
 library(flexdashboard)
