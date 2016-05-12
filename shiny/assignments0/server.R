@@ -13,7 +13,7 @@ shinyServer(function(input, output, session) {
 
       })
 
-  selectedRows <- reactive({brushedPoints(ass_adj(), input$plot_brush)})
+  selectedRows <- reactive({brushedPoints(p()$ass$data, input$plot_brush)})
 
 
   output$detail <-renderTable({

@@ -12,6 +12,7 @@ sidebar <- dashboardSidebar(
             )
 
 body <- dashboardBody(
+                h1("Test"),
                 plotOutput("bubbles",
                             height = 800,
                             brush = brushOpts(
