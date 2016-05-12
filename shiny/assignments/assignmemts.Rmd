@@ -11,8 +11,10 @@ runtime: shiny
 library(dplyr)
 library(stringr)
 library(lubridate)
-library(flexdashboard)
 library(ggplot2)
+library(flexdashboard)
+library(shiny)
+
 
 # Load assignments data
 load("/data/assignments.Rda")
@@ -38,35 +40,36 @@ selectInput("course", "Course", choices = courses, selected = "kams8ela")
 
 sliderInput("min_f", "Minimum F", 0, min = 0, max = 69, step=5)
 ```
-**Select a student's assignment's to see detail**
+**Select a student's assignments to see detail**
 ```{r}
-div(tableOutput("detail"), style = "font-size:75%")
+verbatimTextOutput("detail")
 
 
-output$detail <-renderTable({
+output$detail <-renderPrint({
       req(input$plot_brush)
 
-      all_brush <- brushedPoints(ass_adj(), input$plot_brush)
+      #all_brush <- 
+        x<-brushedPoints(ass_adj(), input$plot_brush)
 
+      x
 
+      # all_brush %>%
+      #   filter(course_number == input$course) %>%
+      #   ungroup() %>%
+      #   mutate(cum_weighted_avg = round(cum_weighted_avg*100,1),
+      #          Score = round(weighted_percent*100,1),
+      #          Date = format(date, format = "%b %e")) %>%
+      #   select(Date,
+      #          Name = abbreviation, Score ,
+      #          "Cum Avg"= cum_weighted_avg,
+      #          "Cum Grade" = cum_grade) %>%
+      #   arrange(Date)},
+      # 
+      # # renderTable options
+      # include.rownames = FALSE,
+      # digits = 0
 
-      all_brush %>%
-        filter(course_number == input$course) %>%
-        ungroup() %>%
-        mutate(cum_weighted_avg = round(cum_weighted_avg*100,1),
-               Score = round(weighted_percent*100,1),
-               Date = format(date, format = "%b %e")) %>%
-        select(Date,
-               Name = abbreviation, Score ,
-               "Cum Avg"= cum_weighted_avg,
-               "Cum Grade" = cum_grade) %>%
-        arrange(Date)},
-
-      # renderTable options
-      include.rownames = FALSE,
-      digits = 0
-
-)
+})
 ```
 
 Column {.tabset .tabset-fade}
