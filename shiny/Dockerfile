@@ -57,7 +57,6 @@ COPY ./assets/ /var/www/
 COPY ./war /srv/shiny-server/war
 COPY ./map /srv/shiny-server/map
 COPY ./assignments /srv/shiny-server/assignments
-COPY ./assignments0 /srv/shiny-server/assignments0
 
 COPY shiny-server.sh /usr/bin/shiny-server.sh
 
