@@ -1,16 +1,50 @@
-# Test server.R Script for tabbed attendance data usuing the DataTable javascript package
-# implemented with Shiny Server.
+---
+title: "Student Recruitment"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    theme: lumen
+runtime: shiny
+---
 
-# creates absoulute path to static resources for IDEA
-addResourcePath('static', '/var/www/')
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(lubridate)
+library(ggplot2)
+library(dplyr)
 
 load('/data/recruiting.Rda')
 
+gauge_goals <-reg_goals_actual %>%
+  filter(
+    !is.na(cols)) %>%
+  group_by(school, grade) %>%
+  filter(date_eow == max(date_eow)) %>%
+  group_by(school) %>%
+  summarize(actual = sum(actual),
+            goal = sum(overall_reg_goal),
+            pct = round(100*actual/goal)) 
 
-#### Shiny Server output code ####
-shinyServer(function(input, output) {
+get_guage <- function(school_name){
+  x <- gauge_goals %>%
+    filter(school == school_name) 
+  
+  gauge(x$pct, 
+        min = 0,
+        max = 100, 
+        symbol = '%',
+        sectors = gaugeSectors(
+          danger = c(0,75),
+          warning = c(75,90),
+          success = c(90,100)
+        ))
+}
+```
 
-# Registrations
+```{r server, include=FALSE}
+
+
     output$plotRegs<-renderPlot({
       ggplot(reg_goals_actual, aes(x=date_eow, y=goal)) +
           geom_bar(stat="identity", fill = NA, color = "black") +
@@ -31,7 +65,7 @@ shinyServer(function(input, output) {
       if(is.null(input$reg_hover)) {
 
         #data_frame("Hover near bars for data" = NA)
-      return("Hover near bars for data")
+      return(HTML("<b>Hover near bars for data</b>"))
       } else {
 
       reg_data  <- nearPoints(reg_goals_actual, input$reg_hover,threshold = 20, maxpoints = 1)
@@ -82,7 +116,7 @@ shinyServer(function(input, output) {
         if(is.null(input$eif_hover)) {
 
           #data_frame("Hover near bars for data" = NA)
-        return("Hover near bars for data")
+        return(HTML("<b>Hover near bars for data</b>"))
         } else {
 
         eif_data  <- nearPoints(eif_goals_actual, input$eif_hover,threshold = 10, maxpoints = 1)
@@ -112,5 +146,77 @@ shinyServer(function(input, output) {
         }
       })
 
+```
 
-})
+Gauges show percent gained of overall registration goals by campus. Registration & EIF goals and progress shown in graphs below.
+
+Row {data-height=160}
+-----------------------------------------------------------------------
+
+### One Primary
+
+```{r}
+renderGauge({get_guage("KOP")})
+```
+
+### One Academy
+
+```{r}
+renderGauge({get_guage("KOA")})
+```
+
+### Ascend Primary
+
+```{r}
+renderGauge({get_guage("KAP")})
+```
+
+### Ascend Middle
+
+```{r}
+renderGauge({get_guage("KAMS")})
+```
+
+### Create
+
+```{r}
+renderGauge({get_guage("KCCP")})
+```
+
+### Bloom
+
+```{r}
+renderGauge({get_guage("KBCP")})
+```
+
+
+
+Row {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Registrations
+```{r regs}
+fillRow(flex = c(3,4),
+        plotOutput("plotRegs",
+           hover="reg_hover",
+           height = 600
+           ),
+        htmlOutput("reg_tbl")
+)
+
+
+```
+
+### Enrollment Intent Forms
+
+```{r}
+fillRow(flex = c(3,4),
+        plotOutput("plotEIFs",
+           hover="eif_hover",
+           height = 600
+           ),
+        htmlOutput("eif_tbl")
+)
+
+```
+
