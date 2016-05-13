@@ -127,6 +127,7 @@ ass_plot <- function(ass_data, course, quarter = "Q2"){
                          breaks = grade_scale$grade_cols,
                          guide = "legend") +
     scale_shape_manual(values=c(16,21)) +
+    scale_y_continuous(labels = scales::percent) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     labs(title = title_text,
@@ -134,7 +135,7 @@ ass_plot <- function(ass_data, course, quarter = "Q2"){
          y = "Percent",
          color = "Grade",
          shape = "Exempt",
-         size = "Relative Weight")
+         size = "Relative\nWeight")
 
 
   p_histo<-ggplot(ass_data_max_dates,
@@ -143,7 +144,8 @@ ass_plot <- function(ass_data, course, quarter = "Q2"){
     scale_fill_identity() +
     theme_bw() +
     labs(x = "Current Grade",
-         y = "# of Students")
+         y = "# of Students",
+         title = title_text)
 
   out <- list()
 

@@ -3,6 +3,7 @@ title: "Instructional Data Explorer"
 output:
   flexdashboard::flex_dashboard:
     orientation: columns
+    theme: lumen
 runtime: shiny
 ---
 
