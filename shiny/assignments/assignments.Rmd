@@ -82,8 +82,7 @@ Column {.tabset .tabset-fade}
 ```{r}
 
 plotOutput("bubbles",
-            brush = brushOpts(id = "plot_brush", direction = "x"),
-            height = 800)
+            brush = brushOpts(id = "plot_brush", direction = "x"))
 
 ass_adj <- reactive({
 
