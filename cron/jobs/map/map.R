@@ -12,7 +12,7 @@ setwd("/jobs/map")
 source("lib/helpers.R")
 
 # Load config and set other variables ####
-print("Working here too!")
+
 config <- as.data.frame(read.dcf("/config/config.dcf"),
                         stringsAsFactors = FALSE)
 
@@ -75,11 +75,51 @@ current_ps <- tbl(silo_nwea_db,
 
 current_ps <- collect(current_ps)
 
+names(current_ps) <- tolower(names(current_ps))
+# calculate students per grade
+
+student_enrollment <- current_ps %>%
+  group_by(schoolid, grade_level) %>%
+  summarize(N = n()) %>%
+  inner_join(schools, by = "schoolid") %>%
+  rename(grade = grade_level)
+
+
+# Calculate current students tested.
+current_map_term <- map_mv_15$cdf %>%
+  filter(teststartdate == max(teststartdate)) %>%
+  select(termname) %>%
+  unique() %>%
+  .[[1]]
+
+tested <- map_mv_15$cdf %>% 
+  filter(termname == current_map_term,
+         growthmeasureyn) %>%
+  group_by(schoolname, grade, measurementscale) %>%
+  summarize(n_tested = n()) %>%
+  mutate(schoolabbreviation = abbrev(schoolname, list(old = "KAPS", new = "KAP"))) %>%
+  ungroup() %>%
+  select(schoolabbreviation, grade, measurementscale, n_tested)
+
+student_enrollment_tested <- 
+  tested %>%
+  left_join(student_enrollment,
+            by = c("schoolabbreviation", "grade")) %>%
+  select(School = schoolabbreviation,
+         Grade = grade,
+         Subject = measurementscale,
+         Enrolled = N,
+         Tested = n_tested
+         ) %>%
+  mutate(Percent = Tested/Enrolled)
+
 save(map_mv_11,
      map_mv_15,
      map_sum_11,
      map_sum_15,
      current_ps,
+     current_map_term,
+     student_enrollment_tested,
      file="/data/map.Rda")
 
 # Tell shiny to restart ####

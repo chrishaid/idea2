@@ -71,4 +71,4 @@ shiny:
     - ./shiny/map/:/srv/shiny-server/map
     - ./shiny/recruit/:/srv/shiny-server/recruit
     - ./shiny/assignments/:/srv/shiny-server/assignments
-    - ./shiny/recruit0/:/srv/shiny-server/recruit0
+    - ./shiny/map0/:/srv/shiny-server/map0

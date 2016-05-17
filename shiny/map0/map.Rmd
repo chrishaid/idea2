@@ -1,0 +1,293 @@
+---
+title: "Assessments"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    theme: lumen
+
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# load map data
+load("/data/map.Rda")
+
+```
+
+```{r server, include = FALSE}
+# server side code
+output$cdf <- DT::renderDataTable(
+                  map_mv_15$cdf,
+                  filter = "top",
+                  rownames = FALSE)
+
+
+  map_sum <- reactive({
+    if(input$norm == "2015"){
+      map_sum <- map_sum_15
+    } else {
+      map_sum <- map_sum_11
+    }
+
+     norm_in <- input$norm
+     map_sum <- map_sum %>%
+       mutate(School = stringr::str_extract(
+                         end_schoolname,
+                         "Ascend|Create|Bloom"
+                         ),
+               nwea_norms = norm_in
+             ) %>%
+       filter(
+         School %in% input$school,
+         cohort_year >= 2014,
+         end_map_year_academic >= 2011,
+         measurementscale %in% input$subject
+       )
+
+    map_sum
+    })
+
+
+  p <- reactive({
+                   x <- map_sum()
+
+                   p <- mapvizieR::summary_long_plot(
+                           x,
+                           growth_window = input$growth_window,
+                           metric = input$metric,
+                           school_col = "School",
+                           by = input$type
+                          )
+
+                  p + theme(legend.position = "right")
+                })
+  
+  output$plot <- renderPlot({p()})
+
+  selectedRows <- reactive({brushedPoints(p()$data, input$map_brush)})
+  
+  output$brush_test <- 
+    DT::renderDataTable({
+      req(input$map_brush)
+      
+      
+      # get data
+      x <- selectedRows()
+      
+      
+      x <- x %>%
+        group_by(end_schoolname,
+                 cohort_year) %>%
+        dplyr::mutate(
+          cohort = sprintf("%s\n(Current Grade: %s)",
+                           cohort_year,
+                           max(end_grade)),
+          Grade = end_grade,
+          SY = sprintf(
+            "%s-%s",
+            stringr::str_extract(end_map_year_academic, "\\d{2}$"),
+            as.integer(stringr::str_extract(end_map_year_academic,
+                                            "\\d{2}$")) + 1
+          )
+        )
+      
+      #x <- brushedPoints(x, input$map_brush)
+      
+      x <- x %>% ungroup() %>%
+        filter(growth_window == input$growth_window) %>%
+        select(
+          SY,
+          "Window" = growth_window,
+          School,
+          Grade,
+          "Subject" = measurementscale,
+          N = n_students,
+          starts_with("pct_"),
+          contains("median"),
+          contains("percentile")
+        ) %>%
+        select(
+          -median_cgi,
+          -median_sgp,
+          "start_percentile" = start_median_consistent_percentile,
+          "end_percentile" = end_median_consistent_percentile
+        )
+      
+    
+      
+      x <- x %>%
+        rename("Typical\nGrowth" = pct_typical,
+               "College Ready Growth" = pct_accel_growth,
+               "Negative\nGrowth" = pct_negative,
+               "Pretest Median RIT" = start_median_testritscore,
+               "Posttest Median RIT" = end_median_testritscore,
+               "Median RIT Growth" = median_rit_growth,
+               "Pretest Cohort Pctl." = start_percentile,
+               "Posttest Cohort Pctl." = end_percentile)
+      
+      DT::datatable(x , 
+                    rownames = FALSE,
+                    options = 
+                      list(bPaginate = FALSE, 
+                           autoWidth = TRUE,
+                           autoHeight = FALSE,
+                           #columnDefs = list(list(width = '10px', 
+                           #                        targets = "_all")),
+                           dom = 't')
+                    ) %>%
+        DT::formatPercentage(c(7:9),
+                             0)
+      
+})
+  
+  
+
+                             
+```
+Longitudinal Viz {data-navmenu="NWEA MAP"}
+======================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+MAP Parameters
+```{r map_inputs}
+
+# School selector
+              selectInput(
+                inputId = "school",
+                label = "Schools:",
+                choices = c("Ascend", "Create", "Bloom"),
+                selected = c("Ascend", "Create", "Bloom"),
+                multiple = TRUE
+              )
+
+              # subject selector
+              selectInput(
+                inputId = "subject",
+                label = "Subjects:",
+                choices = c("Mathematics", "Reading", "General Science"),
+                selected = c("Mathematics", "Reading", "General Science"),
+                multiple = TRUE
+              )
+              
+              # growth window selector
+              selectInput(
+                inputId = "growth_window",
+                label = "Growth Window:",
+                choices = c("Spring to Spring",
+                            "Spring to Winter",
+                            "Fall to Spring",
+                            "Fall to Winter",
+                            "Fall to Fall",
+                            "Winter to Winter",
+                            "Winter to Spring"),
+                selected = "Spring to Winter",
+                multiple = FALSE
+              )
+              
+              # metric selector
+              selectInput(
+                inputId = "metric",
+                label = "Metric",
+                choices = c("% M/E Typical Growth" = "pct_typical",
+                            "% M/E CR Growth" = "pct_accel_growth",
+                            "% Negative RIT Change" = "pct_negative",
+                            "% ≥ 50th Pctl" = "end_pct_50th_pctl",
+                            "% ≥ 75th Pctl" = "end_pct_75th_pctl",
+                            "Mean RIT Score" = "end_mean_testritscore",
+                            "Median RIT Score" = "end_median_testritscore",
+                            "Mean Student Attainment Percentile"  = "end_median_consistent_percentile",
+                            "Mean Student Growth Percentile" = "mean_sgp",
+                            "Cohort Growth Percentile" = "cgp"),
+                selected = "pct_typical",
+                multiple = FALSE
+              )
+              
+              # Grade vs cohort selector
+              selectInput(
+                inputId = "type",
+                label = "View by:",
+                choices = c("Grade" = "grade",
+                            "Cohort (Class of . . . )" = "cohort"),
+                selected = "grade",
+                multiple = FALSE
+              )
+              
+              # Norms selector
+              selectInput(
+                inputId = "norm",
+                label = "Norms:",
+                choices = c("2015",
+                            "2011"),
+                selected = "2015",
+                multiple = FALSE
+              )
+
+```
+
+
+Row {data-height=600}
+-----------------------------------------------------------------------
+
+### Longitudinal Data (click and drag to select points to populate data table below)
+
+```{r}
+plotOutput("plot",
+           height = 375,
+           brush = brushOpts(
+             id = "map_brush",
+             direction = "x"
+             )
+           )
+```
+
+Row {data-height=400 .no-padding}
+-----------------------------------------------------------------------
+
+### Details (click and drag to select assessmens above; scroll to see all data.)
+
+```{r}
+  div(
+    DT::dataTableOutput("brush_test", height = "100%"),
+      style = "font-size:70%; height:100%")
+
+```
+
+Students Tested {data-navmenu="NWEA MAP"}
+======================================================================
+
+### Students Tested (`r current_map_term`)
+
+```{r students_tested}
+
+  x<-student_enrollment_tested %>%
+    arrange(Percent)
+  DT::datatable(x,
+                rownames = FALSE,
+                filter = "top",
+                options = list(bPaginate = FALSE)
+                ) %>%
+  DT::formatPercentage("Percent") %>%
+  DT::formatStyle(
+    'Percent',
+    background = DT::styleColorBar(student_enrollment_tested$Percent, 'steelblue'),
+    backgroundSize = '100% 90%',
+    backgroundRepeat = 'no-repeat',
+    backgroundPosition = 'center'
+  )
+```
+
+
+
+Illuminate 
+======================================================================
+Coming Soon!
+
+
