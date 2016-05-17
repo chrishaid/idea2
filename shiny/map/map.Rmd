@@ -135,18 +135,26 @@ output$cdf <- DT::renderDataTable(
       
       DT::datatable(x , 
                     rownames = FALSE,
+                    style = "bootstrap",
                     options = 
                       list(bPaginate = FALSE, 
                            autoWidth = TRUE,
                            autoHeight = FALSE,
-                           #columnDefs = list(list(width = '10px', 
-                           #                        targets = "_all")),
+                           columnDefs = list(list(width = '75px', targets = c(1))),
                            dom = 't')
                     ) %>%
         DT::formatPercentage(c(7:9),
                              0)
       
 })
+
+  output$hist_scores <- 
+    DT::renderDataTable({
+      x <- hist_scores %>%
+        filter(School == input$hs_school)
+      
+      DT::datatable(x)
+      })
   
   
 
@@ -255,7 +263,8 @@ Row {data-height=400 .no-padding}
 
 ```{r}
   div(
-    DT::dataTableOutput("brush_test", height = "100%"),
+    DT::dataTableOutput("brush_test", 
+                        height = "100%"),
       style = "font-size:70%; height:100%")
 
 ```
@@ -269,10 +278,12 @@ Students Tested {data-navmenu="NWEA MAP"}
 
   x<-student_enrollment_tested %>%
     arrange(Percent)
+
   DT::datatable(x,
                 rownames = FALSE,
                 filter = "top",
-                options = list(bPaginate = FALSE)
+                options = list(bPaginate = FALSE),
+                style = "bootstrap"
                 ) %>%
   DT::formatPercentage("Percent") %>%
   DT::formatStyle(
@@ -284,6 +295,55 @@ Students Tested {data-navmenu="NWEA MAP"}
   )
 ```
 
+Historical Scores {data-navmenu="NWEA MAP"}
+======================================================================
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+schoolyears <- unique(hist_scores$SY)
+
+selectInput("hs_school", label = "Select School",
+            choices = c("KAMS", "KAP", "KBCP", "KCCP"),
+            selected = "KAMS"
+            )
+
+selectInput("hs_sy", label = "Select School",
+            choices = schoolyears,
+            selected = max(schoolyears)
+            )
+
+```
+
+
+Column
+-----------------------------------------------------------------------
+### Historical Student Scores
+```{r historical_scores}
+
+
+
+div(
+  DT::renderDataTable({
+    data <- filter(hist_scores %>%
+                     select(-11, -12) %>% 
+                     ungroup(), 
+                  School == input$hs_school,
+                  SY == input$hs_sy)
+    
+    DT::datatable(data, 
+                style = 'bootstrap',
+                rownames = FALSE,
+                filter = 'top',
+                options = list(
+                  bPaginate = FALSE,
+                  columnDefs = list(list(width = '10px', targets = c(2,5,8,9)))
+                  )
+                )
+}, server=TRUE),
+style = "font-size:70%; height:100%")
+
+```
 
 
 Illuminate 

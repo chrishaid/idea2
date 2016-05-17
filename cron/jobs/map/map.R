@@ -113,6 +113,33 @@ student_enrollment_tested <-
          ) %>%
   mutate(Percent = Tested/Enrolled)
 
+
+# Let's grap historical scores
+hist_scores <- map_mv_15$cdf %>% 
+  inner_join(map_mv_15$roster %>% 
+               filter(implicit_cohort >= 2020) %>%
+               select(termname, studentid, studentlastname, 
+                      studentfirstname, implicit_cohort, year_in_district),
+             by = c("termname",  "studentid")) %>%
+  mutate(SY = sprintf("%s-%s", map_year_academic, map_year_academic + 1),
+         School = mapvizieR::abbrev(schoolname, list(old = "KAPS", new = "KAP")),
+         tested_at_kipp = as.logical(tested_at_kipp)) %>%
+  select(SY,
+         School,
+         Grade = grade,
+         Season = fallwinterspring,
+         Subject = measurementscale,
+         ID = studentid,
+         "First Name" = studentfirstname,
+         "Last Name" = studentlastname,
+         "RIT Score" = testritscore,
+         "Percentile" = testpercentile,
+         "Date Taken" = teststartdate,
+         "Taken at KIPP?" = tested_at_kipp
+  ) %>%
+  arrange(desc(SY), Season, Subject, School, Grade)
+
+
 save(map_mv_11,
      map_mv_15,
      map_sum_11,
@@ -120,6 +147,7 @@ save(map_mv_11,
      current_ps,
      current_map_term,
      student_enrollment_tested,
+     hist_scores,
      file="/data/map.Rda")
 
 # Tell shiny to restart ####

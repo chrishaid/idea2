@@ -36,6 +36,8 @@ RUN R -e "devtools::install_github('rstudio/flexdashboard')"
 
 RUN R -e "devtools::install_github('rstudio/DT')"
 
+RUN R -e "install.packages('viridis',  repos='https://cran.rstudio.com/')"
+
 # Set timezone to Chicago
 RUN cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \
     echo "America/Chicago" > /etc/timezone
