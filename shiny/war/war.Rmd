@@ -5,6 +5,8 @@ output:
     orientation: columns
     vertical_layout: fill
     theme: lumen
+
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
@@ -468,7 +470,7 @@ DT::dataTableOutput("leaders")
 Transfers
 =======================================================================
 
-Column {.tabset}
+Column {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 ### Cumulative Transfers to Date
 ```{r}
