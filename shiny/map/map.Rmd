@@ -244,7 +244,7 @@ MAP Parameters
 Row {data-height=600}
 -----------------------------------------------------------------------
 
-### Longitudinal Data (click and drag to select points to populate data table below)
+### Longitudinal Data (click and drag to select assessments to populate data table below)
 
 ```{r}
 plotOutput("plot",
@@ -259,7 +259,7 @@ plotOutput("plot",
 Row {data-height=400 .no-padding}
 -----------------------------------------------------------------------
 
-### Details (click and drag to select assessmens above; scroll to see all data.)
+### Details (click and drag to select assessments above; scroll to see all data)
 
 ```{r}
   div(
@@ -308,7 +308,8 @@ selectInput("hs_school", label = "Select School",
             selected = "KAMS"
             )
 
-selectInput("hs_sy", label = "Select School",
+selectInput("hs_sy", label = "Select School Years",
+            multiple = TRUE,
             choices = schoolyears,
             selected = max(schoolyears)
             )
