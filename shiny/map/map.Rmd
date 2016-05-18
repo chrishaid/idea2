@@ -64,7 +64,8 @@ output$cdf <- DT::renderDataTable(
                            growth_window = input$growth_window,
                            metric = input$metric,
                            school_col = "School",
-                           by = input$type
+                           by = input$type,
+                           n_cutoff = 10
                           )
 
                   p + theme(legend.position = "right")
@@ -196,7 +197,7 @@ MAP Parameters
                             "Fall to Fall",
                             "Winter to Winter",
                             "Winter to Spring"),
-                selected = "Spring to Winter",
+                selected = "Spring to Spring",
                 multiple = FALSE
               )
               
