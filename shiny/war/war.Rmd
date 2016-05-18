@@ -1,4 +1,34 @@
-# Attendance and enrollment
+---
+title: "School Culture"
+output:
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    theme: lumen
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+#library(Cairo)
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+options(shiny.usecairo = TRUE)
+
+load("/data/attendance.Rda")
+
+load("/data/transfers.Rda")
+
+schools <- unique(ada_weekly_school$schoolabbreviation)
+
+grades <- list(KAP = 0:5,
+               KAMS = 6:8,
+               KCCP = 5:8,
+               KBCP = 5:7)
+
+month_order <- c("Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep")               
 
 source('lib/attendance_helpers.R')
 
@@ -6,12 +36,20 @@ source('lib/attendance_helpers.R')
 goals <- data_frame(schoolabbreviation =  c("KAP", "KAMS", "KCCP", "KBCP"),
                     goal = c(.955))
 
+lastXweeks <- ymd(as.character(floor_date(today() - weeks(6), unit="week")+1))
+last6weeks <- as.character(lastXweeks)
+thisweek <- as.character(today())
+firstweek <- as.character(floor_date(min(attend_date_school_grade$week_of_date)))
 
-#options(shiny.reactlog = TRUE)
-shinyServer(function(input, output, session) {
 
-  # get attendance date interval
-  att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
+restart_time<-file.info('restart.txt')$mtime
+
+update_time_stamp <- lubridate::stamp("Attendance data last updated on Tuesday, September 14, 2001 at 4:41 pm")(restart_time)
+
+```
+
+```{r server_attendance, include = FALSE}
+att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
 
 
 
@@ -193,17 +231,21 @@ shinyServer(function(input, output, session) {
                          filter(grade_level == input$stu_grade)
                        })
 
-  output$student_histogram <- renderPlot(
-    student_histogram(students_filtered())
-    )
+
+  p_histo <- reactive(student_histogram(students_filtered()))
+
+  output$student_histogram <- renderPlot(p_histo())
+
 
   output$students <- DT::renderDataTable({
-                        x <- students_filtered()
-                        x <- brushedPoints(x, input$plot_brush)
-                        x %>%
+                        p_data <- p_histo()$data
+
+                        x <- brushedPoints(p_data, input$plot_brush)
+
+                        x <- x %>%
                           ungroup() %>%
                           mutate(
-                            ada = round(ada,1),
+                            ada = ada/100,
                             grade_level = as.integer(grade_level)) %>%
                           select(
                               Student = lastfirst,
@@ -211,13 +253,20 @@ shinyServer(function(input, output, session) {
                                School = schoolabbreviation,
                                'Days Enrolled' = enrolled,
                                'Days Present' = present,
-                               ADA = ada)
-                        },
-                        rownames = FALSE,
-                        options = list(
-                                    dom = "t"
-                                  )
-                    )
+                               ADA = ada) %>%
+                          arrange(desc(ADA))
+
+                        DT::datatable(x,
+                                      rownames = FALSE,
+                                      style = "bootstrap",
+                                      options =
+                                        list(
+                                          bPaginate = FALSE,
+                                          dom = "t"
+                                          )
+                                      ) %>%
+                          DT::formatPercentage("ADA", 1)
+                        })
 
   output$att_goal_plot <- renderPlot({
     att_daily_goal_plot(
@@ -229,26 +278,36 @@ shinyServer(function(input, output, session) {
     })
 
 
-  output$leaders <- DT::renderDataTable(
+  output$leaders <- DT::renderDataTable({
                       attend_student_ytd %>% ungroup() %>%
-                        filter(ada_rank <= .1) %>%
-                        mutate(ada = round(ada,1),
+                        filter(ada_rank <= .1,
+                               schoolabbreviation == input$chronic_school) %>%
+                        mutate(ada = ada/100,
                         grade_level = as.integer(grade_level)) %>%
                         select(Student = lastfirst,
                                Grade = grade_level,
                                School = schoolabbreviation,
                                'Days Enrolled' = enrolled,
                                'Days Present' = present,
-                               ADA = ada),
-                        filter = "top",
-                        rownames = FALSE)
+                               ADA = ada) %>%
+                        DT::datatable(
+                          filter = "top",
+                          rownames = FALSE,
+                          options = list(
+                            bPaginate = FALSE
+                            )
+                          ) %>%
+                        DT::formatPercentage("ADA", 1)
+
+                        })
+
+```
 
 
-# Transfers #################################################################
+```{r server_transfers, include = FALSE}
+output$transfer_plot <- renderPlot({
 
-  output$transfer_plot <- renderPlot({
 
-    
     todays_month <- month(today(), label = TRUE, abbr = TRUE) %>%
       factor(levels = month_order, ordered = TRUE)
 
@@ -282,5 +341,156 @@ shinyServer(function(input, output, session) {
     })
 
 
+```
 
+
+Daily Attendance and Enrollment {data-navmenu="Attendance"}
+=======================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+dateRangeInput(
+              "att_dates",
+              "Select dates:",
+              start = last6weeks,
+              end = thisweek,
+              min = firstweek,
+              max = thisweek,
+              format = "mm-dd-yyyy"
+             )
+
+selectInput("att_level",
+           "Select level:",
+           choices = c("School" = "school",
+                       "Grade" = "grade",
+                       "Home Room" = "hr"),
+           selected = "School")
+
+conditionalPanel(condition = "input.att_level == 'grade' |
+                  input.att_level == 'hr'",
+                 selectInput("att_school",
+                             "Select school:",
+                             choices = schools,
+                             selected = "KAMS")
+                             )
+
+conditionalPanel(condition = "input.att_level == 'hr'",
+                 uiOutput("school_grades_ui")
+                 )
+
+
+```
+
+Column
+-----------------------------------------------------------------------
+
+### Daily Attendance and Enrollment
+
+```{r}
+plotOutput("step_plot")
+```
+
+Daily ADA Goals {data-navmenu="Attendance"}
+=======================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+checkboxInput("show_ada",
+              "Show ADA?",
+              value = FALSE)       
+```
+This visual shows how far above or below KIPP Chicago's daily ADA each campus performed each school day over the last six weeks. Check the box above to add average daily attendance to each graphed pin.
+
+Column
+-----------------------------------------------------------------------
+
+### Performance Above or Below Daily Attendance Goals
+```{r}
+plotOutput("att_goal_plot")
+```
+
+
+Student ADA {data-navmenu="Attendance"}
+=======================================================================
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+You can click and drag in the histogram to the right in order to see
+more detail on the students represented in each bar
+```{r}
+        selectInput("stu_grade",
+         "Select Grade",
+         choices  = 0:8,
+         selected = 5)
+
+```
+
+Column
+-----------------------------------------------------------------------
+
+### Distribution of Inidividual Student Average Daily Attendance
+```{r}
+ plotOutput("student_histogram",
+                      brush = brushOpts(
+                                id = "plot_brush",
+                                direction = "x")
+                      )
+```
+
+### Detail table
+```{r}
+DT::dataTableOutput("students")
+```
+
+
+
+Most Chronic Absentees {data-navmenu="Attendance"}
+=======================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+selectInput("chronic_school",
+         "Select School",
+         choices = schools,
+         selected = "KAMS",
+         multiple = TRUE)
+```
+This table shows the worse attending 10% of students for each grade level at each school.
+
+Column
+-----------------------------------------------------------------------
+
+### List of Chronically Absent Students
+```{r}
+DT::dataTableOutput("leaders")
+```
+
+Transfers
+=======================================================================
+
+Column {.tabset}
+-----------------------------------------------------------------------
+### Cumulative Transfers to Date
+```{r}
+plotOutput("transfer_plot")
+```
+
+### Historical Transfers by Month
+```{r}
+renderPlot({
+  ggplot(transfers_by_month_2 %>%
+         group_by(month, reason, school_name) %>%
+         summarize(transfers = sum(transfers, na.rm = TRUE)),
+       aes(x=month, y=reason)) +
+  geom_tile(aes(fill = transfers),
+            color = "black") +
+  viridis::scale_fill_viridis(option = "D") +
+  facet_grid(school_name ~ .) +
+  theme_minimal() +
+  labs(x = "", y="", fill = "Transfer Count")
 })
+```
+
+Suspensions
+=======================================================================
+### Coming Soon!

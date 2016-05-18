@@ -73,6 +73,7 @@ student_histogram <- function(data) {
     geom_histogram(aes(fill = ada >= 96),
                    color = "white",
                    binwidth = 2) +
+    viridis::scale_fill_viridis(discrete=TRUE) +
     facet_grid(schoolabbreviation ~ grade_level) +
     theme_bw()
 
