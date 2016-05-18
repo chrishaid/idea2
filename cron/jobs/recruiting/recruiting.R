@@ -56,7 +56,10 @@ regs_tidy <- regs2 %>%
   mutate(date = str_extract(variable, "\\d/\\d{1,2}"),
          date = mdy(sprintf("%s/%s", date, year(today()))),
          date_eow = ceiling_date(date, unit = "week") - days(2)) %>%
-  rename(actual=value)
+  rename(actual=value) %>%
+  group_by(school, grade, date_eow) %>%
+  filter(date == max(date)) %>%
+  ungroup()
 
 regs_tidy %>% as.data.frame()
 
@@ -139,7 +142,10 @@ eifs_tidy <- eifs2 %>%
   mutate(date = str_extract(variable, "\\d/\\d{1,2}"),
          date = mdy(sprintf("%s/%s", date, year(today()))),
          date_eow = ceiling_date(date, unit = "week") - days(2)) %>%
-  rename(actual=value)
+  rename(actual=value) %>%
+  group_by(school, grade, date_eow) %>%
+  filter(date == max(date)) %>%
+  ungroup()
 
 eifs_tidy %>% as.data.frame()
 

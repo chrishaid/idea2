@@ -47,8 +47,8 @@ get_guage <- function(school_name){
 
     output$plotRegs<-renderPlot({
       ggplot(reg_goals_actual, aes(x=date_eow, y=goal)) +
+          geom_bar(aes(y=actual, fill=cols), color = NA, stat="identity") +
           geom_bar(stat="identity", fill = NA, color = "black") +
-          geom_bar(aes(y=actual, fill=cols, color = cols), stat="identity") +
           geom_hline(aes(yintercept = overall_reg_goal)) +
           scale_fill_identity(guide="none") +
           scale_color_identity(guide="none") +
@@ -100,8 +100,8 @@ get_guage <- function(school_name){
 # eifs
     output$plotEIFs<-renderPlot({
       ggplot(eif_goals_actual, aes(x=date_eow, y=goal)) +
+          geom_bar(aes(y=actual, fill=cols), color = NA, stat="identity") +
           geom_bar(stat="identity", fill = NA, color = "black") +
-          geom_bar(aes(y=actual, fill=cols, color = cols), stat="identity") +
           geom_hline(aes(yintercept = overall_eif_goal)) +
           scale_fill_identity(guide="none") +
           scale_color_identity(guide="none") +
