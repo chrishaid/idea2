@@ -12,7 +12,7 @@ setwd("/jobs/transfers")
 source('lib/helpers.R')
 
 # Get Config data ####
-config <- as.data.frame(read.dcf("../config/config.dcf"),
+config <- as.data.frame(read.dcf("/config/config.dcf"),
                         stringsAsFactors = FALSE)
 
 # Connect to Silo ####
@@ -52,7 +52,7 @@ enrolled_2 <- enrolled %>%
                      ymd_hms(exitdate) < date_end),
     exit_date = ymd_hms(ifelse(ymd_hms(exitdate) >= date_end, NA, exitdate)),
     exit_month = month(ymd_hms(exitdate),label = TRUE, abbr = TRUE)
-    ) 
+    )
 
 
 transfers_by_day <- enrolled_2 %>%
@@ -60,16 +60,16 @@ transfers_by_day <- enrolled_2 %>%
   summarize(transfers = sum(transferred)) %>%
   group_by(sy, schoolid.x) %>%
   mutate(cum_transfers = dplyr::order_by(
-    exit_date, 
+    exit_date,
     cumsum(as.integer(transfers))))
-  
+
 transfers_by_day_by_code <- enrolled_2 %>%
   filter(transferred) %>%
   group_by(sy, schoolid.x,  exit_date, exitcode) %>%
   summarize(transfers = sum(transferred)) %>%
   group_by(sy, schoolid.x, exitcode) %>%
   mutate(cum_transfers = dplyr::order_by(
-    exit_date, 
+    exit_date,
     cumsum(as.integer(transfers))))
 
 transfers_by_month <- transfers_by_day %>%
@@ -102,14 +102,14 @@ month_factor <- factor(month_order, levels = month_order, ordered = TRUE)
 
 scaffold <- expand.grid(sy = unique(transfers_by_day_by_code$sy),
                         schoolid.x = unique(transfers_by_day_by_code$schoolid.x),
-                        exit_month = month_factor, 
+                        exit_month = month_factor,
                         exitcode = unique(transfers_by_day_by_code$exitcode))
 
 
 transfers_by_month_2 <- scaffold %>%
   left_join(transfers_by_month_by_code, by =c("sy", "schoolid.x", "exit_month", "exitcode")) %>%
-  left_join(transfer_reasons, by="exitcode")%>% 
-  group_by(sy, schoolid.x,  exitcode) %>% 
+  left_join(transfer_reasons, by="exitcode")%>%
+  group_by(sy, schoolid.x,  exitcode) %>%
   mutate(cum_transfers_2 = as.integer(zoo::na.locf(cum_transfers, na.rm = FALSE)),
          month = factor(exit_month, levels = month_order, ordered=  TRUE)) %>%
   ungroup() %>%
@@ -120,7 +120,7 @@ transfers_by_month_2 <- scaffold %>%
 
 
 
-transfer_goals <- enrolled %>% 
+transfer_goals <- enrolled %>%
   group_by(schoolid, calendardate) %>%
   summarize(N = n()) %>%
   mutate(yearly_goal = round(.1 * N),
@@ -145,5 +145,3 @@ save(transfers_by_month_2,
      file="/data/transfers.Rda")
 
 system("touch /srv/shiny-server/war/restart.txt")
-
-

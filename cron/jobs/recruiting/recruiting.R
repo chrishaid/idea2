@@ -46,7 +46,7 @@ names(regs) <- regs_names_new
 #glimpse(regs)
 
 regs2 <- regs %>% 
-  select(-x22:-pct_seats_filled) %>%
+  select(-starts_with("x"):-pct_seats_filled) %>%
   mutate(gr = ifelse(school == "Region", "All", gr),
         grade = factor(gr, levels=c("K", "5", "6", "All"), ordered = TRUE))
 
@@ -129,7 +129,7 @@ names(eifs) <- eifs_names_new
 #glimpse(eifs)
 
 eifs2 <- eifs %>% 
-  select(-x18:-pct_toward_overall_goal) %>%
+  select(-starts_with("x"):-pct_toward_overall_goal) %>%
   mutate(gr = ifelse(school == "Region", "All", gr),
          grade = factor(gr, levels=c("K", "5", "6", "All"), ordered = TRUE))
 
