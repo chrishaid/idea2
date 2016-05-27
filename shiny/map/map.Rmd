@@ -65,7 +65,7 @@ output$cdf <- DT::renderDataTable(
                            metric = input$metric,
                            school_col = "School",
                            by = input$type,
-                           n_cutoff = 10
+                           n_cutoff = 35
                           )
 
                   p + theme(legend.position = "right")
