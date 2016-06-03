@@ -65,8 +65,8 @@ map_mv_11 <-
 
 # Create summary objects
 
-map_sum_15 <- summary(map_mv_15)
-map_sum_11 <- summary(map_mv_11)
+map_sum_15 <- summary(map_mv_15$growth_df)
+map_sum_11 <- summary(map_mv_11$growth_df)
 
 # get current PowerSchool Roster
 current_ps <- tbl(silo_nwea_db,
@@ -92,7 +92,7 @@ current_map_term <- map_mv_15$cdf %>%
   unique() %>%
   .[[1]]
 
-tested <- map_mv_15$cdf %>% 
+tested <- map_mv_15$cdf %>%
   filter(termname == current_map_term,
          growthmeasureyn) %>%
   group_by(schoolname, grade, measurementscale) %>%
@@ -101,7 +101,7 @@ tested <- map_mv_15$cdf %>%
   ungroup() %>%
   select(schoolabbreviation, grade, measurementscale, n_tested)
 
-student_enrollment_tested <- 
+student_enrollment_tested <-
   tested %>%
   left_join(student_enrollment,
             by = c("schoolabbreviation", "grade")) %>%
@@ -115,10 +115,10 @@ student_enrollment_tested <-
 
 
 # Let's grap historical scores
-hist_scores <- map_mv_15$cdf %>% 
-  inner_join(map_mv_15$roster %>% 
+hist_scores <- map_mv_15$cdf %>%
+  inner_join(map_mv_15$roster %>%
                filter(implicit_cohort >= 2020) %>%
-               select(termname, studentid, studentlastname, 
+               select(termname, studentid, studentlastname,
                       studentfirstname, implicit_cohort, year_in_district),
              by = c("termname",  "studentid")) %>%
   mutate(SY = sprintf("%s-%s", map_year_academic, map_year_academic + 1),
