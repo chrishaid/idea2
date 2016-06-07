@@ -15,6 +15,8 @@ RUN R -e "devtools::install_github('rstudio/flexdashboard')"
 
 RUN R -e "devtools::install_github('rstudio/DT')"
 
+RUN R -e "install.packages('zoo')"
+
 # add Python for scripts that require python
 
 

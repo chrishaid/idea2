@@ -23,8 +23,6 @@ load("/data/attendance.Rda")
 
 load("/data/transfers.Rda")
 
-load("/data/suspensions.Rdata")
-
 schools <- unique(ada_weekly_school$schoolabbreviation)
 
 grades <- list(KAP = 0:5,
@@ -347,47 +345,6 @@ output$transfer_plot <- renderPlot({
 
 ```
 
-```{r server_suspensions, include=FALSE}
-todays_month<-factor(as.character(month(today(), 
-                                        label = TRUE)
-                                  ), 
-                     levels= levels(susp_plot_data$Month), 
-                     ordered = TRUE)
-
-susp_plot_data_2 <- susp_plot_data %>% 
-  filter(Type == "Suspension") %>% 
-  select(School, SY, Month, Type, N, Cum_N) %>% 
-  tidyr::complete(School, SY, Month, Type) %>% 
-  group_by(School, SY, Type) %>% 
-  mutate(Cum_N_2 = zoo::na.locf(Cum_N, na.rm=FALSE), 
-         Cum_N_3 = ifelse(is.na(Cum_N_2), 0, Cum_N_2),
-         Cum_N_4 = ifelse(SY=="SY15-16" & 
-                            as.integer(Month)>as.integer(todays_month), 
-                          NA, 
-                          Cum_N_3))
-  
-
-  
-
-output$suspensions_viz <- renderPlot({
-  p <- ggplot(susp_plot_data_2 %>%
-                filter(SY %in% input$susp_years), aes(x=Month, y=Cum_N_4)) + 
-    geom_bar(aes(fill=SY), 
-             stat="identity", position="dodge") + 
-    facet_grid(.~School) +
-    viridis::scale_fill_viridis(option = "D", discrete = TRUE, begin = 1, end = 0) +
-    # scale_fill_manual("SY", values = c("#CFCCC1",
-    #                               "#C49A6C", 
-    #                               "#17345B")) + 
-    #scale_alpha_discrete("SY", range = c(0.2, 1)) +
-    theme_bw() + 
-    theme(axis.text.x = element_text(angle=45, hjust=1))
-  
-  p
-  })
-```
-
-
 
 Daily Attendance and Enrollment {data-navmenu="Attendance"}
 =======================================================================
@@ -535,46 +492,4 @@ renderPlot({
   labs(x = "", y="", fill = "Transfer Count")
 })
 ```
-
-
-Suspensions
-=======================================================================
-Inputs {.sidebar}
------------------------------------------------------------------------
-```{r}
-checkboxGroupInput("susp_years",
-         "Select School Year",
-         choices = unique(susp_plot_data$SY),
-         selected = c("SY14-15", "SY15-16"))
-```
-
-Column
------------------------------------------------------------------------
-### Suspensions Transfers to Date
-```{r}
-plotOutput("suspensions_viz")
-```
-
-### SY15-16 Suspensions by Month and Reason
-```{r}
- renderPlot({
-   susp %>% 
-     filter(code_translation == "Suspension") %>% 
-     mutate(month2 = month(date_assigned, label = TRUE),
-            month = factor(as.character(month2), 
-                           levels = levels(susp_plot_data$Month))) %>% 
-     group_by(month, School, description) %>% 
-     summarize(N = n()) %>% 
-     complete(month, School, description, fill = list(N = 0)) %>% 
-     #mutate(N=log(1+N)) %>% 
-     ggplot(.) + 
-     geom_tile(aes(x = month, y= description, fill=1+N), color = "white") +
-     facet_grid(.~School) + 
-     viridis::scale_fill_viridis("Count", trans = 'log2') +  
-     theme_bw() +
-     theme(axis.text.x = element_text(angle = 45, hjust=1, vjust=1)) +
-     labs(x = "", y = "")
- })
-```
-
 
