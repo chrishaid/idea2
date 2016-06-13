@@ -1,4 +1,4 @@
- 2  * * * *  root Rscript /jobs/attendance/data/Attend_Enroll.R /jobs/attendance/data/Attend_Enroll.R >> /var/log/cron.log 2>&1
+ 2  * * * *  root Rscript /jobs/attendance/data/Attend_Enroll.R >> /var/log/cron.log 2>&1
 30  6 * * *  root Rscript /jobs/map/map.R >> /var/log/cron.log 2>&1
 55 22 * * *  root Rscript /jobs/transfers/transfers.R >> /var/log/cron.log 2>&1
  5  * * * *  root Rscript /jobs/recruiting/recruiting.R >> /var/log/cron.log 2>&1
