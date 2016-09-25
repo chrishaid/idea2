@@ -4,8 +4,9 @@ MAINTAINER Chris Haid <chaid@kippchicago.org>
 
 # add R packages necessary for jobs to run.
 
-RUN R -e "install.packages(c('ETLUtils', 'RJDBC'))" && \
-    R -e "devtools::install_github('chrishaid/RSQLServer')"
+RUN R -e "install.packages(c('ETLUtils', 'RJDBC'))"
+
+RUN R -e "devtools::install_github('imanuelcostigan/RSQLServer')"
 
 RUN R -e "devtools::install_github('jennybc/googlesheets')"
 
@@ -16,6 +17,8 @@ RUN R -e "devtools::install_github('rstudio/flexdashboard')"
 RUN R -e "devtools::install_github('rstudio/DT')"
 
 RUN R -e "install.packages('zoo')"
+
+RUN R -e "devtools::install_github('chrishaid/silounloadr')"
 
 # add Python for scripts that require python
 

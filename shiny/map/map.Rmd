@@ -1,6 +1,6 @@
 ---
 title: "Assessments"
-output: 
+output:
   flexdashboard::flex_dashboard:
     orientation: rows
     vertical_layout: fill
@@ -31,36 +31,26 @@ output$cdf <- DT::renderDataTable(
 
 
   map_sum <- reactive({
-    if(input$norm == "2015"){
-      map_sum <- map_sum_15
-    } else {
-      map_sum <- map_sum_11
-    }
-
-     norm_in <- input$norm
-     map_sum <- map_sum %>%
-       mutate(School = stringr::str_extract(
-                         end_schoolname,
-                         "Ascend|Create|Bloom"
-                         ),
-               nwea_norms = norm_in
-             ) %>%
-       filter(
-         School %in% input$school,
-         cohort_year >= 2014,
-         end_map_year_academic >= 2011,
-         measurementscale %in% input$subject
-       )
-
-    map_sum
-    })
-
+  map_sum_15 %>%
+    mutate(School = stringr::str_extract(
+                      end_schoolname,
+                      "Ascend|Create|Bloom|One\\sPrimary|One\\sAc"
+                      )#,
+            #nwea_norms = norm_in
+          ) %>%
+    filter(
+      School %in% input$school,
+      cohort_year >= 2014,
+      end_map_year_academic >= 2011,
+      measurementscale %in% input$subject
+    )
+  })
 
   p <- reactive({
-                   x <- map_sum()
+
 
                    p <- mapvizieR::summary_long_plot(
-                           x,
+                          map_sum(),
                            growth_window = input$growth_window,
                            metric = input$metric,
                            school_col = "School",
@@ -70,20 +60,20 @@ output$cdf <- DT::renderDataTable(
 
                   p + theme(legend.position = "right")
                 })
-  
+
   output$plot <- renderPlot({p()})
 
   selectedRows <- reactive({brushedPoints(p()$data, input$map_brush)})
-  
-  output$brush_test <- 
+
+  output$brush_test <-
     DT::renderDataTable({
       req(input$map_brush)
-      
-      
+
+
       # get data
       x <- selectedRows()
-      
-      
+
+
       x <- x %>%
         group_by(end_schoolname,
                  cohort_year) %>%
@@ -99,9 +89,9 @@ output$cdf <- DT::renderDataTable(
                                             "\\d{2}$")) + 1
           )
         )
-      
+
       #x <- brushedPoints(x, input$map_brush)
-      
+
       x <- x %>% ungroup() %>%
         filter(growth_window == input$growth_window) %>%
         select(
@@ -121,9 +111,9 @@ output$cdf <- DT::renderDataTable(
           "start_percentile" = start_median_consistent_percentile,
           "end_percentile" = end_median_consistent_percentile
         )
-      
-    
-      
+
+
+
       x <- x %>%
         rename("Typical\nGrowth" = pct_typical,
                "College Ready Growth" = pct_accel_growth,
@@ -133,12 +123,12 @@ output$cdf <- DT::renderDataTable(
                "Median RIT Growth" = median_rit_growth,
                "Pretest Cohort Pctl." = start_percentile,
                "Posttest Cohort Pctl." = end_percentile)
-      
-      DT::datatable(x , 
+
+      DT::datatable(x ,
                     rownames = FALSE,
                     style = "bootstrap",
-                    options = 
-                      list(bPaginate = FALSE, 
+                    options =
+                      list(bPaginate = FALSE,
                            autoWidth = TRUE,
                            autoHeight = FALSE,
                            columnDefs = list(list(width = '75px', targets = c(1))),
@@ -146,20 +136,20 @@ output$cdf <- DT::renderDataTable(
                     ) %>%
         DT::formatPercentage(c(7:9),
                              0)
-      
+
 })
 
-  output$hist_scores <- 
+  output$hist_scores <-
     DT::renderDataTable({
       x <- hist_scores %>%
         filter(School == input$hs_school)
-      
+
       DT::datatable(x)
       })
-  
-  
 
-                             
+
+
+
 ```
 Longitudinal Viz {data-navmenu="NWEA MAP"}
 ======================================================================
@@ -185,7 +175,7 @@ MAP Parameters
                 selected = c("Mathematics", "Reading", "General Science"),
                 multiple = TRUE
               )
-              
+
               # growth window selector
               selectInput(
                 inputId = "growth_window",
@@ -200,7 +190,7 @@ MAP Parameters
                 selected = "Spring to Spring",
                 multiple = FALSE
               )
-              
+
               # metric selector
               selectInput(
                 inputId = "metric",
@@ -218,7 +208,7 @@ MAP Parameters
                 selected = "pct_typical",
                 multiple = FALSE
               )
-              
+
               # Grade vs cohort selector
               selectInput(
                 inputId = "type",
@@ -228,16 +218,16 @@ MAP Parameters
                 selected = "grade",
                 multiple = FALSE
               )
-              
+
               # Norms selector
-              selectInput(
-                inputId = "norm",
-                label = "Norms:",
-                choices = c("2015",
-                            "2011"),
-                selected = "2015",
-                multiple = FALSE
-              )
+              #selectInput(
+              #  inputId = "norm",
+              #  label = "Norms:",
+              #  choices = c("2015",
+              #              "2011"),
+              #  selected = "2015",
+              #  multiple = FALSE
+              #)
 
 ```
 
@@ -264,7 +254,7 @@ Row {data-height=400 .no-padding}
 
 ```{r}
   div(
-    DT::dataTableOutput("brush_test", 
+    DT::dataTableOutput("brush_test",
                         height = "100%"),
       style = "font-size:70%; height:100%")
 
@@ -328,12 +318,12 @@ Column
 div(
   DT::renderDataTable({
     data <- filter(hist_scores %>%
-                     select(-11, -12) %>% 
-                     ungroup(), 
+                     select(-11, -12) %>%
+                     ungroup(),
                   School == input$hs_school,
                   SY == input$hs_sy)
-    
-    DT::datatable(data, 
+
+    DT::datatable(data,
                 style = 'bootstrap',
                 rownames = FALSE,
                 filter = 'top',
@@ -348,8 +338,6 @@ style = "font-size:70%; height:100%")
 ```
 
 
-Illuminate 
+Illuminate
 ======================================================================
 Coming Soon!
-
-

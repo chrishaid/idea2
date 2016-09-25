@@ -38,14 +38,14 @@ students_all<-select(ill.students, student_id, local_student_id, first_name, las
   mutate(stu_first_name=first_name, stu_last_name=last_name) %>%
   select(student_id, local_student_id, stu_first_name, stu_last_name)
 
-session_terms<-filter(ill.sessions, academic_year==2015) %>%
-  left_join(ill.terms, by="session_id") %>%
-  inner_join(ill.student_term_aff, by="term_id") %>%
-  left_join(ill.grade_levels, by="grade_level_id")
+session_terms <- filter(ill.sessions %>% collect(), academic_year==2015)  %>%
+  left_join(ill.terms %>% collect(), by="session_id") %>%
+  inner_join(ill.student_term_aff %>% collect(), by="term_id") %>%
+  left_join(ill.grade_levels %>% collect(), by="grade_level_id")
 
-students<-left_join(students_all, session_terms, by="student_id") %>%
+students<-left_join(students_all %>% collect(), session_terms, by="student_id") %>%
   mutate(school_id=site_id) %>%
-  select(student_id = student_id.x, local_student_id, stu_first_name, stu_last_name,
+  select(student_id, local_student_id, stu_first_name, stu_last_name,
          grade_level=short_name, school_id)
 
 
@@ -85,12 +85,12 @@ ill.consequences2<-left_join(ill.consequences,
                              by=c("consequence_type_id"="code_id"))
 
 
-ill.participants_consequences <- left_join(ill.participants,
-                                           ill.consequences2,
+ill.participants_consequences <- left_join(ill.participants %>% collect(),
+                                           ill.consequences2 %>% collect(),
                                            by="participant_id") %>%
   left_join(students,
             by="student_id") %>%
-  select(student_id = student_id.x,
+  select(student_id,
          school_id,
          school_site_id,
          local_student_id,
@@ -105,7 +105,7 @@ ill.participants_consequences <- left_join(ill.participants,
          code_translation,
          length=assigned_duration_days) %>%
   filter(code_id %in% c(74, 75, 79, 80)) %>%
-  left_join(ill.users, by="user_id")
+  left_join(ill.users %>% collect(), by="user_id")
 
 
 

@@ -17,9 +17,9 @@ config <- as.data.frame(read.dcf("/config/config.dcf"),
                         stringsAsFactors = FALSE)
 
 
-schools <- data_frame(schoolid = c(78102, 7810, 400146, 400163),
-                      schoolname = c("Ascend Primary", "Ascend Middle", "Create", "Bloom"),
-                      schoolabbreviation =c("KAP", "KAMS", "KCCP", "KBCP"))
+schools <- data_frame(schoolid = c(78102, 7810, 400146, 400163, 4001802, 400180),
+                      schoolname = c("Ascend Primary", "Ascend Middle", "Create", "Bloom", "One Primary", "One Academy"),
+                      schoolabbreviation =c("KAP", "KAMS", "KCCP", "KBCP", "KOP", "KOA"))
 
 first_day <- config$FIRST_DAY
 
@@ -41,32 +41,32 @@ map_cdf <- collect(map_cdf)
 
 map_sep <- separate_cdf(map_cdf,district_name = "KIPP Chicago")
 
-# create mapvizieR object for 2015 and 2011 norms
+# create mapvizieR object for 2015 
 
 map_mv_15 <-
   mapvizieR(
     cdf = map_sep$cdf,
     roster = map_sep$roster,
-     include_unsanctioned_windows = TRUE,
-    norm_df_long = mapvizieR:::norms_students_wide_to_long(
-                    student_growth_norms_2015
-                    )
+     include_unsanctioned_windows = TRUE #,
+    # norm_df_long = mapvizieR:::norms_students_wide_to_long(
+    #                 student_growth_norms_2015
+    #                )
     )
 
-map_mv_11 <-
-  mapvizieR(
-    cdf = map_sep$cdf,
-    roster = map_sep$roster,
-    include_unsanctioned_windows = TRUE,
-    norm_df_long = mapvizieR:::norms_students_wide_to_long(
-      student_growth_norms_2011
-    )
-  )
+# map_mv_11 <-
+#   mapvizieR(
+#     cdf = map_sep$cdf,
+#     roster = map_sep$roster,
+#     include_unsanctioned_windows = TRUE,
+#     norm_df_long = mapvizieR:::norms_students_wide_to_long(
+#       student_growth_norms_2011
+#     )
+#   )
 
 # Create summary objects
 
 map_sum_15 <- summary(map_mv_15$growth_df)
-map_sum_11 <- summary(map_mv_11$growth_df)
+#map_sum_11 <- summary(map_mv_11$growth_df)
 
 # get current PowerSchool Roster
 current_ps <- tbl(silo_nwea_db,
@@ -117,7 +117,7 @@ student_enrollment_tested <-
 # Let's grap historical scores
 hist_scores <- map_mv_15$cdf %>%
   inner_join(map_mv_15$roster %>%
-               filter(implicit_cohort >= 2020) %>%
+               filter(implicit_cohort >= 2021) %>%
                select(termname, studentid, studentlastname,
                       studentfirstname, implicit_cohort, year_in_district),
              by = c("termname",  "studentid")) %>%
@@ -140,9 +140,7 @@ hist_scores <- map_mv_15$cdf %>%
   arrange(desc(SY), Season, Subject, School, Grade)
 
 
-save(map_mv_11,
-     map_mv_15,
-     map_sum_11,
+save(map_mv_15,
      map_sum_15,
      current_ps,
      current_map_term,

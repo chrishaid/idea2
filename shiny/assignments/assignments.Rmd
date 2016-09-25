@@ -15,14 +15,16 @@ library(ggplot2)
 library(flexdashboard)
 library(shiny)
 
-
+enableBookmarking(store = "url")
 # Load assignments data
 load("/data/assignments.Rda")
 
 # Source functions
 source("lib/ass_helpers.R")
 
-quarters <- c("Q1", "Q2", "Q3", "Q4")
+quarters <- sort(as.character(unique(assignments$quarter)))
+
+max_quarter <- max(quarters)
 
 courses <- sort(unique(assignments$course_number))
 # Munges some data
@@ -34,13 +36,18 @@ PowerSchool Assignments
 Inputs {.sidebar}
 -----------------------------------------------------------------------
 ```{r}
-selectInput("quarter", "Quarter", choices = quarters, selected = "Q4")
+
+selectInput("quarter", "Quarter", choices = quarters, selected = max_quarter)
 
 selectInput("course", "Course", choices = courses, selected = "kams8ela")
 
 sliderInput("min_f", "Minimum F", 0, min = 0, max = 69, step=5)
+
+bookmarkButton()
+br()
+hr()
 ```
-**Select a student's assignments to see detail**
+**Highlight a student's assignments in graph to see detail below**
 ```{r}
 div(tableOutput("detail"), style = "font-size:75%")
 
@@ -62,7 +69,7 @@ output$detail <-renderTable({
                Score = round(weighted_percent*100,1),
                Date = format(date, format = "%b %e")) %>%
         select(Date,
-               Name = abbreviation, Score ,
+               Name = name, Score ,
                "Cum Avg"= cum_weighted_avg,
                "Cum Grade" = cum_grade) %>%
         arrange(Date)},
@@ -82,7 +89,8 @@ Column {.tabset .tabset-fade}
 ```{r}
 
 plotOutput("bubbles",
-            brush = brushOpts(id = "plot_brush", direction = "x"))
+            brush = brushOpts(id = "plot_brush", direction = "x")
+          )
 
 ass_adj <- reactive({
 

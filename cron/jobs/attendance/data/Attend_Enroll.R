@@ -13,9 +13,9 @@ config <- as.data.frame(read.dcf("/config/config.dcf"),
                         stringsAsFactors = FALSE)
 
 
-schools <- data_frame(schoolid = c(78102, 7810, 400146, 400163),
-                      schoolname = c("Ascend Primary", "Ascend Middle", "Create", "Bloom"),
-                      schoolabbreviation =c("KAP", "KAMS", "KCCP", "KBCP"))
+schools <- data_frame(schoolid = c(78102, 7810, 400146, 400163, 4001802, 400180),
+                      schoolname = c("Ascend Primary", "Ascend Middle", "Create", "Bloom", "One Primary", "One Academy"),
+                      schoolabbreviation =c("KAP", "KAMS", "KCCP", "KBCP", "KOP", "KOA"))
 
 first_day <- config$FIRST_DAY
 
@@ -36,7 +36,8 @@ attendance <- tbl(silo_ps_db,
                               first_day
                               )
                       )
-                  )
+                  ) %>%
+  collect()
 
 
 # Get membership ####
@@ -45,7 +46,8 @@ membership <- tbl(silo_ps_db,
                            first_day
                            )
                       )
-                  )
+                  ) %>%
+  collect()
 
 
 
@@ -65,13 +67,11 @@ member_att <- membership  %>%
                      PRESENCE_STATUS_CD
                      ),
             by =c("STUDENTID",
-                  "CALENDARDATE" = "ATT_DATE")) %>%
-  rename(STUDENTID = STUDENTID.x) %>%
-  select(-STUDENTID.y)
+                  "CALENDARDATE" = "ATT_DATE")) 
 
 
 # Pull member_att into memory ####
-member_att<-collect(member_att)
+#member_att<-collect(member_att)
 
 
 # light munging of member_att to get final attendance table ####
