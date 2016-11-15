@@ -1,0 +1,249 @@
+---
+title: "KTC Data Explorer"
+output:
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    theme: lumen
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(flexdashboard)
+library(shiny)
+library(timevis)
+library(Cairo)
+
+enableBookmarking(store = "url")
+# Load assignments data
+load("/data/ktc.Rda")
+
+# Source functions
+source("lib/ktc_helpers.R")
+
+# some constants
+classes <- c(2011:2020)
+
+counselors <- unique(contacts_summary$name.y)
+
+statuses <- unique(contacts_summary$status_c)
+
+ todays_date <- today()
+ days_elapsed_7 <- todays_date - days(7)
+ days_elapsed_30 <- todays_date - days(30)
+ days_elapsed_90 <- todays_date - days(90)
+
+ contact_goal_7 <- 15
+ contact_goal_30 <- as.integer(contact_goal_7 / 7 * 30)
+ contact_goal_90 <- contact_goal_30 * 3
+
+
+```
+
+Contacts
+======================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+
+selectInput("class",
+            "Class of",
+            choices = classes,
+            multiple = TRUE,
+            selected = classes)
+
+selectInput("counselor",
+            "Counselors",
+            choices = counselors,
+            multiple = TRUE,
+            selected = c("Catrina Clayton",
+                         "China Hill",
+                         "Deja Manuel",
+                         "Jamie Hawley",
+                         "Margarita Herrera",
+                         "Pete Gooden"))
+checkboxGroupInput("status",
+         "Status type",
+         choices = c("Successful", "Outreach"),
+         selected = "Successful")
+
+radioButtons("facet_by",
+             "Show by",
+             choices = c("Counselor" = "name.y",
+                            "Class" = "kipp_hs_class_c",
+                            "Both" = "kipp_hs_class_c ~ name.y"
+                            )
+            )
+
+
+bookmarkButton()
+
+
+```
+
+Row
+-----------------------------------------------------------------------
+```{r}
+contacts_filtered <- reactive({
+  filtered <- contacts_details %>%
+    filter(kipp_hs_class_c %in% input$class,
+           name.y %in% input$counselor,
+           status_c %in% input$status)
+
+  out<-list()
+
+
+  out$last_7 <- nrow(filtered %>%
+                        filter(created_date.x >= days_elapsed_7
+                        )
+                )
+
+  out$last_30 <- nrow(filtered %>%
+                        filter(created_date.x >= days_elapsed_30
+                        )
+                )
+
+  out$last_90 <- nrow(filtered %>%
+                        filter(created_date.x >= days_elapsed_90
+                        )
+                )
+
+
+  out              
+
+  })
+
+# contacts_total <- renderText(contacts_filtered()$total)
+# contacts_7 <- renderText(contacts_filtered()$last_7)
+# contacts_30 <- renderText(contacts_filtered()$last_30)
+
+```
+
+### Contacts last 90 days
+
+```{r}
+renderValueBox({
+  valueBox(value = contacts_filtered()$last_90,
+           caption = sprintf("Contacts last 90 days (goal: %s)",
+                             contact_goal_90*length(input$counselor)),
+    icon = "fa-calendar-check-o",
+    color = ifelse(contacts_filtered()$last_90 < contact_goal_90*length(input$counselor), "warning", "primary"))
+  })
+```
+
+### Contacts last 30 days
+
+```{r}
+renderValueBox({
+  valueBox(value = contacts_filtered()$last_30,
+           caption = sprintf("Contacts last 30 days (goal: %s)",
+                             contact_goal_30*length(input$counselor)),
+    icon = "fa-calendar-check-o",
+    color = ifelse(contacts_filtered()$last_30 < contact_goal_30*length(input$counselor), "warning", "primary"))
+  })
+```
+
+
+### Contacts last 7 days
+
+```{r}
+renderValueBox({
+  valueBox(value = contacts_filtered()$last_7,
+           caption = sprintf("Contacts last 7 days (goal: %s)",
+                             contact_goal_7*length(input$counselor)),
+    icon = "fa-calendar-check-o",
+    color = ifelse(contacts_filtered()$last_7 < contact_goal_7*length(input$counselor), "warning", "primary"))
+  })
+```
+
+
+
+Row {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Summary {.no-padding}
+
+```{r}
+
+plotOutput("contacts_flow",
+            brush = brushOpts(id = "plot_brush", direction = "x")
+          )
+
+
+output$contacts_flow <-renderPlot({
+
+if(!grepl("~", input$facet_by)) { # not class and counselor
+
+  if(input$facet_by == "name.y") { #if counselor
+    filter_cond <- ~ name.y %in% input$counselor
+  } else { # if class
+    filter_cond <- ~ kipp_hs_class_c %in% input$class
+  }
+
+  # Class or counselor plot
+  p <- contacts_details %>%
+    filter(status_c %in% input$status) %>%
+    group_by_("date_c", input$facet_by) %>%
+    summarize(N = n()) %>%
+    filter_(filter_cond,
+          ~ date_c >= days_elapsed_90
+          ) %>%
+    ggplot(aes(x=date_c, y=N)) +
+      geom_bar(aes(
+                   fill = N >= contact_goal_7/7),
+               color = "white",
+               stat="identity") +
+      facet_wrap(input$facet_by) +
+      viridis::scale_fill_viridis("Daily contacts > 2",
+                                  option = "D",
+                                  discrete= TRUE,
+                                  direction = -1) +
+      scale_x_datetime(date_labels = "%b %d",
+                       date_breaks = "1 week") +
+      theme_bw() +
+      theme(legend.position = "bottom",
+            axis.text.x = element_text(angle=45, hjust = 1)) +
+      labs(y = "Number of contacts",
+           x = "Date")
+  } else { # both class and counselor
+
+    # Class and counselor plot
+    p <- contacts_details %>%
+      filter(status_c %in% input$status) %>%
+      group_by(date_c, name.y, kipp_hs_class_c) %>%
+      summarize(N = n()) %>%
+      filter(name.y %in% input$counselor,
+              kipp_hs_class_c %in% input$class,
+              date_c >= days_elapsed_90
+            ) %>%
+      ggplot(aes(x=date_c, y=N)) +
+        geom_bar(aes(
+                     fill = N >= contact_goal_7/7),
+                 color = NA,
+                 stat="identity") +
+        facet_grid(name.y ~ kipp_hs_class_c) +
+        viridis::scale_fill_viridis("Daily contacts > 2",
+                                    option = "D",
+                                    discrete= TRUE,
+                                    direction = -1) +
+        scale_x_datetime(date_labels = "%b %d",
+                         date_breaks = "1 week") +
+        theme_bw() +
+        theme(legend.position = "bottom",
+              axis.text.x = element_text(angle=45, hjust = 1)) +
+        labs(y = "Number of contacts",
+             x = "Date")
+
+  }
+
+
+  p
+
+ })
+
+
+
+```

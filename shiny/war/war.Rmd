@@ -325,7 +325,7 @@ output$transfer_plot <- renderPlot({
 
     ggplot(transfers_by_month_2 %>%
              filter(!(month > todays_month &
-                      sy == "2015-2016")
+                      sy == "2016-2017")
                     ),
            aes(x = month, y=cum_transfers_2)) +
       geom_bar(aes(fill = factor(reason), y=cum_transfers_2),

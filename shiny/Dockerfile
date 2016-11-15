@@ -4,13 +4,24 @@ MAINTAINER Chris Haid "chaid@kippchicago.org"
 
 # Winston Chang wrote the following to get shiny up and running.
 RUN apt-get update && apt-get install -y -t unstable \
-    libssl-dev \
-    libxml2-dev
+    libssl-dev  \
+    libxml2-dev \
+    git-core
+
+#RUN apt-get install -y libssl1.0.0
+
+
 
 # Download and install libssl 0.9.8
 #RUN wget --no-verbose http://ftp.us.debian.org/debian/pool/main/o/openssl/libssl0.9.8_0.9.8o-4squeeze14_amd64.deb && \
 #    dpkg -i libssl0.9.8_0.9.8o-4squeeze14_amd64.deb && \
 #    rm -f libssl0.9.8_0.9.8o-4squeeze14_amd64.deb
+
+## TEMPORARY to get fixed version of git2r package
+RUN git clone https://github.com/ropensci/git2r.git \
+  && R CMD build git2r \
+  && R CMD INSTALL git2r_0.15.0.9000.tar.gz
+
 
 # Download and install shiny server
 RUN wget --no-verbose https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/VERSION -O "version.txt" && \
@@ -19,10 +30,12 @@ RUN wget --no-verbose https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubu
     gdebi -n ss-latest.deb && \
     rm -f version.txt ss-latest.deb
 
+RUN R -e "install.packages('devtools')"
 
-RUN R -e "install.packages(c('devtools', 'dplyr', 'ggplot2', 'lubridate', 'purrr', 'RCurl', 'rmarkdown', 'shiny', 'xtable', 'Cairo', 'shinydashboard', 'DT'), repos='https://cran.rstudio.com/')"
+RUN R -e "install.packages(c('tidyverse', 'RCurl', 'rmarkdown', 'shiny', 'xtable', 'Cairo', 'shinydashboard', 'DT'), repos='https://cran.rstudio.com/')"
 
-RUN R -e "devtools::install_github('hadley/readr')"
+#RUN R -e "devtools::install_github('hadley/readr')"
+
 
 RUN R -e "devtools::install_github('jennybc/googlesheets')"
 
@@ -40,6 +53,7 @@ RUN R -e "install.packages('viridis',  repos='https://cran.rstudio.com/')"
 
 RUN R -e "install.packages('zoo')"
 
+RUN R -e "install.packages('timevis',  repos='https://cran.rstudio.com/')"
 # Set timezone to Chicago
 RUN cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \
     echo "America/Chicago" > /etc/timezone

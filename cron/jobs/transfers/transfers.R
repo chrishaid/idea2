@@ -24,7 +24,7 @@ silo_ps_db <- src_sqlserver(server =  config$SILO_URL,
 # Get students ####
 students <- tbl(silo_ps_db, "students")
 
-hsr_dates <- ymd("151001") - years(0:2)
+hsr_dates <- c(ymd("161004"), ymd("151001") - years(0:1))
 
 
 membs_list <- hsr_dates %>%
