@@ -75,6 +75,7 @@ COPY ./assets/ /var/www/
 COPY ./war /srv/shiny-server/war
 COPY ./map /srv/shiny-server/map
 COPY ./assignments /srv/shiny-server/assignments
+COPY ./ktc /srv/shiny-server/ktc
 
 COPY shiny-server.sh /usr/bin/shiny-server.sh
 
