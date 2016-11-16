@@ -244,6 +244,39 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
 
  })
 
+```
 
+
+Classes
+======================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+
+selectInput("class2",
+            "Class of",
+            choices = classes,
+            selected = 2013)
+
+
+
+bookmarkButton()
+
+
+```
+
+Row
+-----------------------------------------------------------------------
+```{r}
+
+class_filtered <- reactive({
+  class_all %>%
+  filter(kipp_hs_class_c == input$class2)
+  })
+
+
+output$timeline <- renderTimevis({plot_timeline(class_filtered())})
+
+timevisOutput("timeline")
 
 ```

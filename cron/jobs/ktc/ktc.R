@@ -59,7 +59,8 @@ transitions_contacts<-transitions_by_student %>%
 
 
 # Save data ####
-save(class_all,
+save(
+     class_all,
      contacts_details,
      contacts_summary,
      transitions_by_student,
