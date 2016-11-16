@@ -5,7 +5,7 @@ MAINTAINER Chris Haid <chaid@kippchicago.org>
 RUN apt-get update -y && apt-get install -y  \
     libbz2-dev \
     libpcre3-dev \
-    liblzma-dev 
+    liblzma-dev
 
 # add R packages necessary for jobs to run.
 
@@ -31,7 +31,7 @@ RUN R -e "devtools::install_github('chrishaid/silounloadr')"
 # install cron and update tz
 
 RUN apt-get update &&\
-    apt-get install -t unstable -y --no-install-recommends \
+    apt-get install -y --no-install-recommends \
     cron && \
     cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \
     echo "America/Chicago" > /etc/timezone
