@@ -2,6 +2,10 @@ FROM rocker/hadleyverse
 MAINTAINER Chris Haid <chaid@kippchicago.org>
 
 
+RUN apt-get update && apt-get install -y -t unstable \
+    libbz2-dev \
+    libpcre3-dev
+
 # add R packages necessary for jobs to run.
 
 RUN R -e "install.packages(c('ETLUtils', 'RJDBC'))"
