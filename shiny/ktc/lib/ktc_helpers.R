@@ -26,7 +26,7 @@ plot_timeline <- function(.data, students = NULL){
   color_map <- frame_data(
   ~status_c,           ~style,
   "Graduated",         "color: green;",
-  "Transferred Out",   "color: gold;",
+  "Transferred out",   "color: gold;",
   "Withdrawn",         "color: red;",
   "Attending",         "color: blue;",
   "Matriculated",      "color: gray;",
