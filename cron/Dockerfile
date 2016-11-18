@@ -59,6 +59,9 @@ RUN mkdir /data && chmod 777 /data
 # Create the log file to be able to run tail
 RUN touch /var/log/cron.log
 
+# load crontab
+RUN crontab /etc/cron.d/idea-cron
+
 # Run the command on container startup
 
 
