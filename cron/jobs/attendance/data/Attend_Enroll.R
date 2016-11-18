@@ -47,7 +47,7 @@ membership <- tbl(silo_ps_db,
                            )
                       )
                   ) %>%
-  collect()
+  collect(n = Inf)
 
 
 
