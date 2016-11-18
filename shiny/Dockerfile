@@ -54,6 +54,10 @@ RUN R -e "install.packages('viridis',  repos='https://cran.rstudio.com/')"
 RUN R -e "install.packages('zoo')"
 
 RUN R -e "install.packages('timevis',  repos='https://cran.rstudio.com/')"
+
+RUN R -e "install.packages('sunburstR',  repos='https://cran.rstudio.com/')"
+
+RUN R -e "install.packages('networkD3',  repos='https://cran.rstudio.com/')"
 # Set timezone to Chicago
 RUN cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \
     echo "America/Chicago" > /etc/timezone
