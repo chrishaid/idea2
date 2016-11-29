@@ -40,7 +40,7 @@ source('lib/attendance_helpers.R')
 
 # ADA goals for each school
 goals <- data_frame(schoolabbreviation =  c("KAP", "KAMS", "KCCP", "KBCP", "KOP", "KOA"),
-                    goal = c(.97))
+                    goal = c(.96))
 
 lastXweeks <- ymd(as.character(floor_date(today() - weeks(6), unit="week")+1))
 last6weeks <- as.character(lastXweeks)
@@ -363,7 +363,7 @@ susp_plot_data_2 <- susp_plot_data %>%
   group_by(School, SY, Type) %>%
   mutate(Cum_N_2 = zoo::na.locf(Cum_N, na.rm=FALSE),
          Cum_N_3 = ifelse(is.na(Cum_N_2), 0, Cum_N_2),
-         Cum_N_4 = ifelse(SY=="SY15-16" &
+         Cum_N_4 = ifelse(SY=="SY16-17" &
                             as.integer(Month)>as.integer(todays_month),
                           NA,
                           Cum_N_3))

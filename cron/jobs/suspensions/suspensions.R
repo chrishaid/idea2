@@ -38,7 +38,7 @@ students_all<-select(ill.students, student_id, local_student_id, first_name, las
   mutate(stu_first_name=first_name, stu_last_name=last_name) %>%
   select(student_id, local_student_id, stu_first_name, stu_last_name)
 
-session_terms <- filter(ill.sessions %>% collect(), academic_year==2015)  %>%
+session_terms <- filter(ill.sessions %>% collect(), academic_year==2016)  %>%
   left_join(ill.terms %>% collect(), by="session_id") %>%
   inner_join(ill.student_term_aff %>% collect(), by="term_id") %>%
   left_join(ill.grade_levels %>% collect(), by="grade_level_id")
@@ -109,7 +109,7 @@ ill.participants_consequences <- left_join(ill.participants %>% collect(),
 
 
 
-schools<-c("KAP", "KAMS", "KCCP", "KBCP")
+schools<-c("KAP", "KAMS", "KCCP", "KBCP", "KOP", "KOA")
 
 susp<-collect(ill.participants_consequences) %>%
   mutate(school_site_id=ifelse(school_site_id==9999999, school_id, school_site_id),
@@ -125,6 +125,7 @@ mons<-c("Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "J
 
 SY1314 <- interval(ymd("130801"), ymd("140731"))
 SY1415 <- interval(ymd("140801"), ymd("150731"))
+SY1516 <- interval(ymd("150801"), ymd("160731"))
 
 
 
@@ -133,11 +134,12 @@ susp_plot_data <- susp %>%
   group_by(School, date_assigned, Type) %>%
   summarize(N=n()) %>%
   mutate(Month_Year=floor_date(date_assigned,"month"),
-         SY_1 = "SY15-16",
-         SY_2 = ifelse(date_assigned %within% SY1415, "SY14-15", SY_1),
-         SY = ifelse(date_assigned %within% SY1314, "SY13-14", SY_2)
+         SY_1 = "SY16-17",
+         SY_2 = ifelse(date_assigned %within% SY1516, "SY15-16", SY_1),
+         SY_3 = ifelse(date_assigned %within% SY1415, "SY14-15", SY_2),
+         SY = ifelse(date_assigned %within% SY1314, "SY13-14", SY_3)
   ) %>%
-  select(-SY_1, -SY_2) %>%
+  select(-SY_1, -SY_2, -SY_3) %>%
   ungroup %>%
   group_by(School, Month_Year, SY, Type) %>%
   summarize(N=sum(N)) %>%
