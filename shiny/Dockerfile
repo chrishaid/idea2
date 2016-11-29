@@ -3,10 +3,13 @@ FROM rocker/shiny
 MAINTAINER Chris Haid "chaid@kippchicago.org"
 
 # Winston Chang wrote the following to get shiny up and running.
-RUN apt-get update && apt-get install -y -t unstable \
+RUN apt-get update -y && apt-get install -y  \
     libssl-dev  \
     libxml2-dev \
-    git-core
+    git-core \
+    libbz2-dev \
+    libpcre3-dev \
+    liblzma-dev
 
 #RUN apt-get install -y libssl1.0.0
 
@@ -18,9 +21,9 @@ RUN apt-get update && apt-get install -y -t unstable \
 #    rm -f libssl0.9.8_0.9.8o-4squeeze14_amd64.deb
 
 ## TEMPORARY to get fixed version of git2r package
-RUN git clone https://github.com/ropensci/git2r.git \
-  && R CMD build git2r \
-  && R CMD INSTALL git2r_0.15.0.9000.tar.gz
+#RUN git clone https://github.com/ropensci/git2r.git \
+#  && R CMD build git2r \
+#  && R CMD INSTALL git2r_0.15.0.9000.tar.gz
 
 
 # Download and install shiny server
