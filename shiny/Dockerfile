@@ -1,15 +1,43 @@
-FROM rocker/shiny
+FROM rocker/tidyverse:3.3.2
 
 MAINTAINER Chris Haid "chaid@kippchicago.org"
 
-# Winston Chang wrote the following to get shiny up and running.
-RUN apt-get update -y && apt-get install -y  \
-    libssl-dev  \
-    libxml2-dev \
-    git-core \
-    libbz2-dev \
-    libpcre3-dev \
-    liblzma-dev
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    sudo \
+    gdebi \
+    pandoc \
+    pandoc-citeproc \
+    libcurl4-gnutls-dev \
+    libcairo2-dev \
+    libxt-dev
+
+# Download and install shiny server
+RUN wget --no-verbose https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/VERSION -O "version.txt" && \
+    VERSION=$(cat version.txt)  && \
+    wget --no-verbose "https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/shiny-server-$VERSION-amd64.deb" -O ss-latest.deb && \
+    gdebi -n ss-latest.deb && \
+    rm -f version.txt ss-latest.deb
+#    R -e "install.packages(c('shiny', 'rmarkdown'), repos='https://cran.rstudio.com/')" && \
+#    cp -R /usr/local/lib/R/site-library/shiny/examples/* /srv/shiny-server/
+
+# Download and install shiny server
+#    RUN wget --no-verbose https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/VERSION -O "version.txt" && \
+#        VERSION=$(cat version.txt)  && \
+#        wget --no-verbose "https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/shiny-server-$VERSION-amd64.deb" -O ss-latest.deb && \
+#        gdebi -n ss-latest.deb && \
+#        rm -f version.txt ss-latest.deb
+# FROM rocker/shiny
+#
+
+#
+# # Winston Chang wrote the following to get shiny up and running.
+# RUN apt-get update -y
+# RUN apt-get install -y libssl-dev
+# RUN apt-get install -y libxml2-dev
+# RUN apt-get install -y git-core
+# RUN apt-get install -y libbz2-dev
+# RUN apt-get install -y libpcre3-dev
+# RUN apt-get install -y liblzma-dev
 
 #RUN apt-get install -y libssl1.0.0
 
@@ -26,16 +54,11 @@ RUN apt-get update -y && apt-get install -y  \
 #  && R CMD INSTALL git2r_0.15.0.9000.tar.gz
 
 
-# Download and install shiny server
-RUN wget --no-verbose https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/VERSION -O "version.txt" && \
-    VERSION=$(cat version.txt)  && \
-    wget --no-verbose "https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/shiny-server-$VERSION-amd64.deb" -O ss-latest.deb && \
-    gdebi -n ss-latest.deb && \
-    rm -f version.txt ss-latest.deb
 
-RUN R -e "install.packages('devtools')"
 
-RUN R -e "install.packages(c('tidyverse', 'RCurl', 'rmarkdown', 'shiny', 'xtable', 'Cairo', 'shinydashboard', 'DT'), repos='https://cran.rstudio.com/')"
+#RUN R -e "install.packages('devtools')"
+
+RUN R -e "install.packages(c('RCurl', 'rmarkdown', 'shiny', 'xtable', 'Cairo', 'shinydashboard', 'DT'), repos='https://cran.rstudio.com/')"
 
 #RUN R -e "devtools::install_github('hadley/readr')"
 
