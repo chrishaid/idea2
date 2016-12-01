@@ -54,5 +54,11 @@ group_data <- .data %>%
   arrange(content)
 
 timevis::timevis(data = vis_data,
-                 groups = group_data)
+                 groups = group_data,
+
+                 options = list(
+                                verticalScroll = TRUE,
+                                horizontalScroll = FALSE,
+                                zoomable = FALSE)
+                 )
 }

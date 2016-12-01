@@ -4,6 +4,7 @@ output:
   flexdashboard::flex_dashboard:
     orientation: rows
     theme: lumen
+    vertical_layout: scroll
 runtime: shiny
 ---
 
@@ -16,6 +17,7 @@ library(flexdashboard)
 library(shiny)
 library(timevis)
 library(Cairo)
+library(sunburstR)
 
 enableBookmarking(store = "url")
 # Load assignments data
@@ -265,8 +267,10 @@ bookmarkButton()
 
 ```
 
-Row
+Row {data-height=400}
 -----------------------------------------------------------------------
+### Sunburst
+
 ```{r}
 
 class_filtered <- reactive({
@@ -274,6 +278,91 @@ class_filtered <- reactive({
   filter(kipp_hs_class_c == input$class2)
   })
 
+school_types<-dplyr::frame_data(
+    ~type, ~type_short,
+    "KIPP School", "KIPP",
+    "Former KIPP School", "KIPP",
+
+    "Magnet Public School", "Magnet",
+    "Traditional Public School", "TPS",
+    "Charter Public School", "Charter",
+    "Alternative High School", "Alt",
+    "National/Boarding School", "Boarding",
+    "Independent Day School", "Day",
+    "Therapeutic School", "Therapeutic",
+    "Early College High School", "Early College HS",
+    "Private/Parochial Day School", "Private",
+
+    "Private less-than 2 yr", "Private (< 2yr)",
+
+    "Private 2 yr", "Private (2 yr)",
+    "Public 2 yr",  "Public (2 yr)",
+
+    "Private 4 yr", "Public College",
+    "Public 4 yr", "Private College",
+
+    "Other", "Other"
+    )
+
+
+
+output$sunburst <- renderSunburst({
+  class_filtered() %>%
+  filter(!grepl("KIPP", type)) %>%
+  inner_join(school_types, by="type") %>%
+  group_by(id) %>%
+  arrange(id, start_date) %>%
+  summarize(sequence = tolower(paste(type_short, collapse = "-"))) %>%
+  mutate(sequence = paste0(sequence, "-end")) %>%
+  group_by(sequence) %>%
+  summarize(V2=n()) %>%
+  arrange(desc(V2)) %>%
+  rename(V1=sequence) %>%
+  as.data.frame() %>%
+  sunburst(count = TRUE)
+
+  })
+
+sunburstOutput("sunburst")
+
+```
+
+### Transition from original HS
+
+```{r}
+
+output$hs_outcome <- renderPlot({
+
+  class_all_HS_placement <- class_filtered() %>%
+    ungroup() %>%
+    filter(type != "KIPP School") %>%
+    group_by(id, first_name, last_name, kipp_hs_class_c) %>%
+    filter(start_date == min(start_date)) %>%
+    arrange(last_name, first_name)
+
+  class_all_HS_placement %>%   
+    ggplot() +
+      geom_bar(aes(x = status_c, fill=status_c)
+               ) +
+    #facet_wrap(~kipp_hs_class_c) +
+    viridis::scale_fill_viridis(discrete = TRUE, guide = FALSE) +
+    theme_minimal() +
+    labs(x = "", y = "# of Alumni")
+
+  })
+
+
+plotOutput("hs_outcome")
+
+```
+
+
+Row {data-height=8000}
+-----------------------------------------------------------------------
+
+### Timelines
+
+```{r}
 
 output$timeline <- renderTimevis({plot_timeline(class_filtered())})
 
