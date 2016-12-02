@@ -18,6 +18,7 @@ library(shiny)
 library(timevis)
 library(Cairo)
 library(sunburstR)
+library(stringr)
 
 enableBookmarking(store = "url")
 # Load assignments data
@@ -42,6 +43,33 @@ statuses <- unique(contacts_summary$status_c)
  contact_goal_30 <- as.integer(contact_goal_7 / 7 * 30)
  contact_goal_90 <- contact_goal_30 * 3
 
+ noble_schools <-
+  c("Rowe-Clark Math and Science Academy",
+    "Chicago Bulls College Prep",
+    "UIC College Prep",
+    "Muchin College Prep",
+    "DRW Trading College Prep",
+    "Noble Street College Prep",
+    "Rauner College Prep",
+    "Golder College Prep",
+    "ITW David Speer Academy",
+    "Pritzker College Prep",
+    "The Noble Academy",
+    "Gary Comer College Prep",
+    "Baker College Prep",
+    "Butler College Preparatory High School",
+    "Johnson College Prep",
+    "Baker College Preparatory High School",
+    "Hansberry College Preparatory High School",
+    "Mansueto College Prep"
+    )
+
+# update class_all with Noble schools
+
+class_all <- class_all %>%
+  dplyr::mutate(noble = school_name %in% noble_schools,
+                type_noble = if_else(noble, "Noble", type),
+                noble_2 = if_else(noble, "Noble", "Other"))
 
 ```
 
@@ -83,8 +111,9 @@ radioButtons("facet_by",
 
 bookmarkButton()
 
-
 ```
+
+
 
 Row
 -----------------------------------------------------------------------
@@ -260,16 +289,28 @@ selectInput("class2",
             choices = classes,
             selected = 2013)
 
+checkboxInput("noble",
+            "Break out Noble",
+            value = FALSE)
+
 
 
 bookmarkButton()
 
+br()
+
+hr()
 
 ```
+The **sunburst sequence** shows the selected class's complete set of sequences from HS matriculation to date, starting from the inside out.
+
+**Mousing** over the sunburst will highlight a sequence and show a time line for every student that has followed the same sequence in the table below sunburst box title **Timelines**.  The center of the circle will show the total number and percent of students that have followed the same highlighted path.
+
+Longer "wedges" that stick out far from the sunburst indicate sets of students that have had more transitions than those "wedges" that remain close to the center.
 
 Row {data-height=400}
 -----------------------------------------------------------------------
-### Sunburst
+### Sunburst (all sequences of 8th grade completers)
 
 ```{r}
 
@@ -280,48 +321,87 @@ class_filtered <- reactive({
 
 school_types<-dplyr::frame_data(
     ~type, ~type_short,
-    "KIPP School", "KIPP",
-    "Former KIPP School", "KIPP",
+    "KIPP School",                  "KIPP",
+    "Former KIPP School",           "KIPP",
 
-    "Magnet Public School", "Magnet",
-    "Traditional Public School", "TPS",
-    "Charter Public School", "Charter",
-    "Alternative High School", "Alt",
-    "National/Boarding School", "Boarding",
-    "Independent Day School", "Day",
-    "Therapeutic School", "Therapeutic",
-    "Early College High School", "Early College HS",
+    "Noble",                        "Noble",
+    "Magnet Public School",         "Magnet",
+    "Traditional Public School",    "TPS",
+    "Charter Public School",        "Charter",
+    "Alternative High School",      "Alt",
+    "National/Boarding School",     "Boarding",
+    "Independent Day School",       "Day",
+    "Therapeutic School",           "Therapeutic",
+    "Early College High School",    "Early College HS",
     "Private/Parochial Day School", "Private",
 
-    "Private less-than 2 yr", "Private (< 2yr)",
+    "Private less-than 2 yr",       "Private (< 2yr)",
 
-    "Private 2 yr", "Private (2 yr)",
-    "Public 2 yr",  "Public (2 yr)",
+    "Private 2 yr",                 "Private (2 yr)",
+    "Public 2 yr",                  "Public (2 yr)",
 
-    "Private 4 yr", "Public College",
-    "Public 4 yr", "Private College",
+    "Private 4 yr",                 "Public College",
+    "Public 4 yr",                  "Private College",
 
-    "Other", "Other"
+    "Other",                        "Other"
     )
+
+
+class_sequences <- reactive({
+
+  x <- class_filtered() %>%
+          filter(!grepl("KIPP", type))
+
+  if(input$noble) {
+    x <- x %>% mutate(type = type_noble)    
+    }
+
+  x <- x %>%  
+      inner_join(school_types, by="type") %>%
+  group_by(id) %>%
+  arrange(id, start_date) %>%
+  summarize(sequence = tolower(paste(type_short, collapse = "-"))) %>%
+  mutate(sequence = paste0(sequence, "-end"))
+  })
 
 
 
 output$sunburst <- renderSunburst({
-  class_filtered() %>%
-  filter(!grepl("KIPP", type)) %>%
-  inner_join(school_types, by="type") %>%
-  group_by(id) %>%
-  arrange(id, start_date) %>%
-  summarize(sequence = tolower(paste(type_short, collapse = "-"))) %>%
-  mutate(sequence = paste0(sequence, "-end")) %>%
-  group_by(sequence) %>%
-  summarize(V2=n()) %>%
-  arrange(desc(V2)) %>%
-  rename(V1=sequence) %>%
-  as.data.frame() %>%
-  sunburst(count = TRUE)
-
+  class_sequences() %>%
+    group_by(sequence) %>%
+    summarize(V2=n()) %>%
+    arrange(desc(V2)) %>%
+    rename(V1=sequence) %>%
+    as.data.frame() %>%
+    sunburst(count = TRUE) %>%
+    add_shiny() %>%
+    htmlwidgets::onRender(
+      htmlwidgets::JS(
+        "
+        function(el,x){
+          var endpaths = d3.select(el)
+          .selectAll('path')[0]
+          .filter(function(d){
+            return d3.select(d).datum().name === 'end'
+            });
+          d3.selectAll(endpaths).style('fill','none');
+        }
+        "      
+  )    
+)
   })
+
+  sequence_ids <- reactive({
+    sequences <- paste(input$sunburst_mouseover, collapse = "-")
+
+    x <- class_sequences()
+
+    x %>%
+      filter(str_detect(sequence, fixed(sequences))) %>%
+      select(id)
+
+
+    })
 
 sunburstOutput("sunburst")
 
@@ -340,14 +420,19 @@ output$hs_outcome <- renderPlot({
     filter(start_date == min(start_date)) %>%
     arrange(last_name, first_name)
 
-  class_all_HS_placement %>%   
+  p <- class_all_HS_placement %>%   
     ggplot() +
       geom_bar(aes(x = status_c, fill=status_c)
                ) +
     #facet_wrap(~kipp_hs_class_c) +
     viridis::scale_fill_viridis(discrete = TRUE, guide = FALSE) +
     theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust=1)) +
     labs(x = "", y = "# of Alumni")
+
+  if(input$noble) p <- p + facet_grid(~noble_2)
+
+  p  
 
   })
 
@@ -364,7 +449,16 @@ Row {data-height=8000}
 
 ```{r}
 
-output$timeline <- renderTimevis({plot_timeline(class_filtered())})
+
+
+
+output$timeline <- renderTimevis({
+
+class_filtered() %>%
+  inner_join(sequence_ids(), by = "id") %>%
+  plot_timeline()
+
+  })
 
 timevisOutput("timeline")
 
