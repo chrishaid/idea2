@@ -6,7 +6,7 @@ library(lubridate)
 library(stringr)
 library(tidyr)
 
-setwd("/jobs/ktc/")
+setwd("/jobs/idea/ktc/")
 source("lib/library.R")
 
 
