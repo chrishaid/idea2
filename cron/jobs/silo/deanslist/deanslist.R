@@ -1,25 +1,49 @@
 setwd("/jobs/silo/deanslist")
 
+
+readRenviron("/config/.Renviron")
+
 library(silounloadr)
-library(dplry)
+library(dplyr)
+library(tidyr)
 library(httr)
 library(deanslistr)
+library(futile.logger)
+library(purrr)
+library(googleCloudStorageR)
+library(janitor)
+library(stringr)
 
-susp_list <- get_suspensions(domain = "kippchicago")
+# set up logging
 
+flog.threshold(TRACE)
+flog.appender(appender.tee("logs/deanslist.log"))
+
+flog.info("Connecting to and pulling deanslist data")
+susp_list <- ftry(get_suspensions(domain = "kippchicago"))
+
+flog.info("suspensions data successfully pulled for keys %s",
+          paste(names(susp_list), collapse = ", "))
+
+flog.info("Begin unnesting suspesion data ")
 safe_unnest <- safely(unnest)
 
 susp_2 <- susp_list %>%
   purrr::map(~safe_unnest(.x, Penalties)) %>%
   purrr::transpose()
 
+flog.info("Suspension data unnested")
 
 ok <- susp_2$error %>% map_lgl(is_null)
 
-ok
+flog.info("Unnestable tables are from:\n  %s", paste(names(ok)[ok], collapse = "\n  "))
 
+flog.warn("Problems with tables from:\n  %s", paste(names(ok)[!ok], collapse = "\n  "))
+
+flog.info("Binding data frames together")
 suspensions <- susp_2$result %>% keep(ok) %>% bind_rows()
 
+flog.info("Extracing names, dates, and the like")
 suspensions_2 <- suspensions %>%
   mutate(school = str_extract(school_name, "K.{3,4}$"),
          StartDate = ymd(StartDate),
@@ -34,4 +58,14 @@ suspensions_2 <- suspensions %>%
          StudentID, 
          Month, 
          PenaltyName, 
-         Category) 
+         Category) %>%
+  clean_names()
+
+
+
+# Test loading into s3 bucket.
+flog.info("Setting global bucket on GCS to deanslist")
+gcs_auth() 
+gcs_global_bucket("deanslist")
+
+gcs_upload(suspensions_2, name = "suspensions/suspensions.csv")
