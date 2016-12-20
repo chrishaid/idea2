@@ -20,10 +20,12 @@ flog.threshold(TRACE)
 flog.appender(appender.tee("logs/deanslist.log"))
 
 flog.info("Connecting to and pulling deanslist data")
+
+
 susp_list <- ftry(get_suspensions(domain = "kippchicago"))
 
 flog.info("suspensions data successfully pulled for keys %s",
-          paste(names(susp_list), collapse = ", "))
+          paste(names(susp_list), collapse = "\n "))
 
 flog.info("Begin unnesting suspesion data ")
 safe_unnest <- safely(unnest)
@@ -38,7 +40,11 @@ ok <- susp_2$error %>% map_lgl(is_null)
 
 flog.info("Unnestable tables are from:\n  %s", paste(names(ok)[ok], collapse = "\n  "))
 
-flog.warn("Problems with tables from:\n  %s", paste(names(ok)[!ok], collapse = "\n  "))
+
+if (length(names(ok)[!ok]) > 0) {
+  flog.warn("Problems with tables from:\n  %s", paste(names(ok)[!ok], collapse = "\n  "))  
+}
+
 
 flog.info("Binding data frames together")
 suspensions <- susp_2$result %>% keep(ok) %>% bind_rows()
@@ -58,7 +64,8 @@ suspensions_2 <- suspensions %>%
          StudentID, 
          Month, 
          PenaltyName, 
-         Category) %>%
+         Category,
+         Infraction) %>%
   clean_names()
 
 
@@ -68,4 +75,7 @@ flog.info("Setting global bucket on GCS to deanslist")
 gcs_auth() 
 gcs_global_bucket("deanslist")
 
-gcs_upload(suspensions_2, name = "suspensions/suspensions.csv")
+flog.info("Uploading data to GCS")
+ftry(gcs_upload(suspensions_2, name = "suspensions/files/suspensions.csv"))
+
+flog.info("Upload Complete")
