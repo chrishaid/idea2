@@ -7,7 +7,7 @@ require(purrr)
 require(stringr)
 require(mapvizieR)
 
-setwd("/jobs/map")
+setwd("/jobs/idea/map")
 
 source("lib/helpers.R")
 
@@ -41,7 +41,7 @@ map_cdf <- collect(map_cdf)
 
 map_sep <- separate_cdf(map_cdf,district_name = "KIPP Chicago")
 
-# create mapvizieR object for 2015 
+# create mapvizieR object for 2015
 
 map_mv_15 <-
   mapvizieR(

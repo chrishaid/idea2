@@ -6,7 +6,7 @@ require(lubridate)
 require(purrr)
 require(stringr)
 
-setwd("/jobs/attendance/data")
+setwd("/jobs/idea/attendance/data")
 
 # Load config and set other variables ####
 config <- as.data.frame(read.dcf("/config/config.dcf"),
@@ -67,7 +67,7 @@ member_att <- membership  %>%
                      PRESENCE_STATUS_CD
                      ),
             by =c("STUDENTID",
-                  "CALENDARDATE" = "ATT_DATE")) 
+                  "CALENDARDATE" = "ATT_DATE"))
 
 
 # Pull member_att into memory ####

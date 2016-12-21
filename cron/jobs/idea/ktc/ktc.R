@@ -6,11 +6,15 @@ library(lubridate)
 library(stringr)
 library(tidyr)
 
-setwd("/jobs/ktc/")
+setwd("/jobs/idea/ktc/")
 source("lib/library.R")
 
 
 # Get KTC data's from silo2 ####
+
+#googlesheets::gs_auth(token="/config/gs_token.rds")
+#system("chmod 777 .httr-oauth")
+
 
 contact <- get_alumni_db("contact", collect = TRUE)
 account <- get_alumni_db("account", collect = TRUE)

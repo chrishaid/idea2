@@ -4,7 +4,7 @@ library(googlesheets)
 library(tidyr)
 library(dplyr)
 
-setwd("/jobs/recruiting")
+setwd("/jobs/idea/recruiting")
 
 # from hadley, stops stripping of date and factor classes from ifelse
 safe.ifelse <- function(cond, yes, no) structure(ifelse(cond, yes, no), class = class(yes))
@@ -39,18 +39,18 @@ regs_names <- names(regs)
 
 regs_names_new <- regs_names %>% fix_names()
 
-  
+
 
 names(regs) <- regs_names_new
 
 #glimpse(regs)
 
-regs2 <- regs %>% 
+regs2 <- regs %>%
   select(-starts_with("x"):-pct_seats_filled) %>%
   mutate(gr = ifelse(school == "Region", "All", gr),
         grade = factor(gr, levels=c("K", "5", "6", "All"), ordered = TRUE))
 
-regs_tidy <- regs2 %>% 
+regs_tidy <- regs2 %>%
   select(school, grade, overall_reg_goal,  starts_with("n_reg_as")) %>%
   tidyr::gather(variable, value, starts_with("n_reg_")) %>%
   mutate(date = str_extract(variable, "\\d/\\d{1,2}"),
@@ -75,7 +75,7 @@ reg_goals_names <- names(reg_goals) %>% fix_names()
 names(reg_goals) <- reg_goals_names
 
 # tidy goals
-regs_goals_tidy<-reg_goals %>% 
+regs_goals_tidy<-reg_goals %>%
   mutate(gr = ifelse(school == "Region", "All", gr),
          grade = factor(gr, levels=c("K", "5", "6", "All"), ordered = TRUE)) %>%
   select(school, grade, starts_with("reg_goal")) %>%
@@ -86,7 +86,7 @@ regs_goals_tidy<-reg_goals %>%
   select(-variable)
 
 
-# get original goals 
+# get original goals
 reg_goals_orig <- gs_read(sheet, "Goals (Original)", range = "A12:R22")
 
 # munge names
@@ -95,7 +95,7 @@ reg_goals_orig_names <- names(reg_goals_orig) %>% fix_names()
 names(reg_goals_orig) <- reg_goals_orig_names
 
 # tidy goals
-reg_goals_orig_tidy<-reg_goals_orig %>% 
+reg_goals_orig_tidy<-reg_goals_orig %>%
   mutate(gr = ifelse(school == "Region", "All", gr),
          grade = factor(gr, levels=c("K", "5", "6", "All"), ordered = TRUE)) %>%
   select(school, grade, starts_with("reg_goal")) %>%
@@ -103,7 +103,7 @@ reg_goals_orig_tidy<-reg_goals_orig %>%
   mutate(date = str_extract(variable, "\\d/\\d{1,2}"),
          date = mdy(sprintf("%s/%s", date, year(today()))),
          date_eow = ceiling_date(date, unit = "week") - days(2)) %>%
-  select(-variable) %>% 
+  select(-variable) %>%
   filter(date < min(regs_goals_tidy$date),
          goal != "---") %>%
   mutate(goal = as.integer(goal))
@@ -131,12 +131,12 @@ names(eifs) <- eifs_names_new
 
 #glimpse(eifs)
 
-eifs2 <- eifs %>% 
+eifs2 <- eifs %>%
   select(-starts_with("x"):-pct_toward_overall_goal) %>%
   mutate(gr = ifelse(school == "Region", "All", gr),
          grade = factor(gr, levels=c("K", "5", "6", "All"), ordered = TRUE))
 
-eifs_tidy <- eifs2 %>% 
+eifs_tidy <- eifs2 %>%
   select(school, grade, overall_eif_goal,  starts_with("n_eifs_as")) %>%
   tidyr::gather(variable, value, starts_with("n_eifs_")) %>%
   mutate(date = str_extract(variable, "\\d/\\d{1,2}"),
@@ -161,7 +161,7 @@ eif_goals_names <- names(eif_goals) %>% fix_names()
 names(eif_goals) <- eif_goals_names
 
 # tidy goals
-eif_goals_tidy<-eif_goals %>% 
+eif_goals_tidy<-eif_goals %>%
   mutate(gr = ifelse(school == "Region", "All", gr),
          grade = factor(gr, levels=c("K", "5", "6", "All"), ordered = TRUE)) %>%
   select(school, grade, starts_with("eif_goal")) %>%
@@ -172,7 +172,7 @@ eif_goals_tidy<-eif_goals %>%
   select(-variable)
 
 
-# get original goals 
+# get original goals
 eif_goals_orig <- gs_read(sheet, "Goals (Original)", range = "A1:R10")
 
 # munge names
@@ -181,7 +181,7 @@ eif_goals_orig_names <- names(eif_goals_orig) %>% fix_names()
 names(eif_goals_orig) <- eif_goals_orig_names
 
 # tidy goals
-eif_goals_orig_tidy<-eif_goals_orig %>% 
+eif_goals_orig_tidy<-eif_goals_orig %>%
   mutate(gr = ifelse(school == "Region", "All", gr),
          grade = factor(gr, levels=c("K", "5", "6", "All"), ordered = TRUE)) %>%
   select(school, grade, starts_with("eif_goal")) %>%
@@ -189,7 +189,7 @@ eif_goals_orig_tidy<-eif_goals_orig %>%
   mutate(date = str_extract(variable, "\\d/\\d{1,2}"),
          date = mdy(sprintf("%s/%s", date, year(today()))),
          date_eow = ceiling_date(date, unit = "week") - days(2)) %>%
-  select(-variable) %>% 
+  select(-variable) %>%
   filter(date < min(eif_goals_tidy$date),
          goal != "---") %>%
   mutate(goal = as.integer(goal))

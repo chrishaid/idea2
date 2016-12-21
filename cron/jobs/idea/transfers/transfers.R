@@ -7,7 +7,7 @@ require(stringr)
 
 
 
-setwd("/jobs/transfers")
+setwd("/jobs/idea/transfers")
 
 source('lib/helpers.R')
 

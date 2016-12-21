@@ -7,7 +7,7 @@ require(readr)
 require(lubridate)
 require(stringr)
 
-setwd("/jobs/suspensions")
+setwd("/jobs/idea/suspensions")
 
 source("lib/helpers.R")
 

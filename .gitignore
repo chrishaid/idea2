@@ -12,3 +12,7 @@
 
 # httr_oath files
 *.httr-oauth
+
+# any log files
+*.log
+*.logs

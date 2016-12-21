@@ -4,7 +4,7 @@ require(tidyr)
 require(lubridate)
 require(stringr)
 
-setwd("/jobs/assignments")
+setwd("/jobs/idea/assignments")
 
 config <- as.data.frame(read.dcf("/config/config.dcf"),
                         stringsAsFactors = FALSE)
@@ -42,7 +42,7 @@ pg_fg_cc <- pg_final_grades %>%
   #       STUDENTID = STUDENTID.x) %>%
   select(-ends_with(".y"))
 
-grades_1<-pg_fg_cc %>% 
+grades_1<-pg_fg_cc %>%
   left_join(students %>%
               select(STUDENTID = ID,
                      STUDENT_NUMBER,
@@ -89,17 +89,17 @@ names(grades) <- tolower(names(grades))
 
 #assignments <- collect(assignments_1, n = Inf)
 
-assignments <- assignment %>% 
-  inner_join(assignment_section, 
-             by = "ASSIGNMENTID", suffix = c("_assign", "_assign_sect")) %>% 
-  inner_join(assignment_score, 
+assignments <- assignment %>%
+  inner_join(assignment_section,
+             by = "ASSIGNMENTID", suffix = c("_assign", "_assign_sect")) %>%
+  inner_join(assignment_score,
              by = "ASSIGNMENTSECTIONID", suffix = c("", "_score")) %>%
   left_join(sections %>%
               select(DCID,
                      GRADE_LEVEL,
                      COURSE_NUMBER,
                      TEACHER,
-                     TERMID), 
+                     TERMID),
             by = c("SECTIONSDCID" = "DCID")) %>%
   collect()
 
@@ -165,4 +165,3 @@ save(assignments,
      file="/data/assignments.Rda")
 
 system("touch /srv/shiny-server/assignments/restart.txt")
-
