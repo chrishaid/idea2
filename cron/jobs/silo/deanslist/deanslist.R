@@ -1,7 +1,8 @@
 setwd("/jobs/silo/deanslist")
 
-
 readRenviron("/config/.Renviron")
+
+Sys.setenv("GCS_AUTH_FILE" = "/config/gcs/.httr-oauth")
 
 library(silounloadr)
 library(dplyr)
@@ -13,7 +14,7 @@ library(purrr)
 library(googleCloudStorageR)
 library(janitor)
 library(stringr)
-
+library(lubridate)
 # set up logging
 
 flog.threshold(TRACE)
@@ -72,7 +73,7 @@ suspensions_2 <- suspensions %>%
 
 # Test loading into s3 bucket.
 flog.info("Setting global bucket on GCS to deanslist")
-gcs_auth() 
+
 gcs_global_bucket("deanslist")
 
 flog.info("Uploading data to GCS")

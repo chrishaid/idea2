@@ -3,7 +3,7 @@ title: "Assessments"
 output:
   flexdashboard::flex_dashboard:
     orientation: rows
-    vertical_layout: fill
+    vertical_layout: scroll
     theme: lumen
 
 runtime: shiny
@@ -34,7 +34,7 @@ output$cdf <- DT::renderDataTable(
   map_sum_15 %>%
     mutate(School = stringr::str_extract(
                       end_schoolname,
-                      "Ascend|Create|Bloom|One\\sPrimary|One\\sAc"
+                      "Ascend|Create|Bloom|One"
                       )#,
             #nwea_norms = norm_in
           ) %>%
@@ -58,7 +58,10 @@ output$cdf <- DT::renderDataTable(
                            n_cutoff = 35
                           )
 
-                  p + theme(legend.position = "right")
+                  p + theme_minimal() +
+                      theme(legend.position = "right",
+                            axis.text.x = element_text(hjust=1, angle = 45)) +
+                      facet_grid(School ~ end_grade)                      
                 })
 
   output$plot <- renderPlot({p()})
@@ -162,18 +165,17 @@ MAP Parameters
               selectInput(
                 inputId = "school",
                 label = "Schools:",
-                choices = c("Ascend", "Create", "Bloom"),
-                selected = c("Ascend", "Create", "Bloom"),
+                choices = c("Ascend", "Create", "Bloom", "One"),
+                selected = c("Ascend", "Create", "Bloom", "One"),
                 multiple = TRUE
               )
 
               # subject selector
-              selectInput(
+              radioButtons(
                 inputId = "subject",
                 label = "Subjects:",
                 choices = c("Mathematics", "Reading", "General Science"),
-                selected = c("Mathematics", "Reading", "General Science"),
-                multiple = TRUE
+                selected = "Mathematics"
               )
 
               # growth window selector
@@ -187,7 +189,7 @@ MAP Parameters
                             "Fall to Fall",
                             "Winter to Winter",
                             "Winter to Spring"),
-                selected = "Spring to Spring",
+                selected = "Fall to Winter",
                 multiple = FALSE
               )
 
@@ -232,7 +234,7 @@ MAP Parameters
 ```
 
 
-Row {data-height=600}
+Row {data-height=375}
 -----------------------------------------------------------------------
 
 ### Longitudinal Data (click and drag to select assessments to populate data table below)

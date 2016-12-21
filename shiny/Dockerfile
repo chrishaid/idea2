@@ -73,7 +73,7 @@ RUN R -e "install.packages('htmltools',  repos='https://cran.rstudio.com/')"
 
 RUN R -e "devtools::install_github('rstudio/flexdashboard')"
 
-RUN R -e "devtools::install_github('rstudio/DT')"
+RUN R -e "install.packages('DT')"
 
 RUN R -e "install.packages('viridis',  repos='https://cran.rstudio.com/')"
 
