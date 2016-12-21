@@ -40,6 +40,7 @@ output$cdf <- DT::renderDataTable(
           ) %>%
     filter(
       School %in% input$school,
+      end_grade %in% c(input$grades[1]:input$grades[2]),
       cohort_year >= 2014,
       end_map_year_academic >= 2011,
       measurementscale %in% input$subject
@@ -49,19 +50,25 @@ output$cdf <- DT::renderDataTable(
   p <- reactive({
 
 
-                   p <- mapvizieR::summary_long_plot(
-                          map_sum(),
-                           growth_window = input$growth_window,
-                           metric = input$metric,
-                           school_col = "School",
-                           by = input$type,
-                           n_cutoff = 35
-                          )
+         p <- mapvizieR::summary_long_plot(
+                map_sum(),
+                 growth_window = input$growth_window,
+                 metric = input$metric,
+                 school_col = "School",
+                 by = input$type,
+                 n_cutoff = 35
+                )
 
-                  p + theme_minimal() +
-                      theme(legend.position = "right",
-                            axis.text.x = element_text(hjust=1, angle = 45)) +
-                      facet_grid(School ~ end_grade)                      
+          p <- p + theme_minimal() +
+                   theme(legend.position = "right",
+                         axis.text.x = element_text(hjust=1,
+                           angle = 45))
+         if (input$type == "grade") {
+          p + facet_grid(School ~ end_grade)                       
+         } else {
+          p + facet_grid(School ~ cohort)                       
+         }
+
                 })
 
   output$plot <- renderPlot({p()})
@@ -211,6 +218,15 @@ MAP Parameters
                 multiple = FALSE
               )
 
+              # Grade selection
+              sliderInput(
+                inputId = "grades",
+                label = "Grades",
+                min = 0, max = 8,
+                value = c(2,8),
+                round = TRUE
+              )
+
               # Grade vs cohort selector
               selectInput(
                 inputId = "type",
@@ -221,7 +237,7 @@ MAP Parameters
                 multiple = FALSE
               )
 
-              # Norms selector
+              #Grades selector
               #selectInput(
               #  inputId = "norm",
               #  label = "Norms:",
