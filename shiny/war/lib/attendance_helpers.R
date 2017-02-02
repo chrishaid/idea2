@@ -54,7 +54,7 @@ enroll_attend_plot <- function(daily_data, weekly_data){
     scale_x_continuous(breaks = c(2,3,4,5,6), labels=c("M","T","W","R","F")) + #Change numberd week days to lettered
     scale_y_continuous("# of Students") +
     scale_colour_manual( "", values=c("#439539", "#8D8685" , "black",  "#E27425", "#439539"),
-                        labels = c("Enrolled", "97% of Enrolled", "Attended",  "Weekly < 97%", "Weekly ≥ 97%")
+                        labels = c("Enrolled", "96% of Enrolled", "Attended",  "Weekly < 96%", "Weekly ≥ 96%")
                         ) +
     facet_grid(name ~ week_of_date_short_label, scale = "free_y") +
     theme_bw() +

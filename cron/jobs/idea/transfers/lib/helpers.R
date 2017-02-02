@@ -12,24 +12,30 @@ force_weekday <- function(date, offset = 0) {
 
 }
 
+# drop fivetran columns 
+drop_fivetran_cols <- . %>% select(-starts_with("_fivetran"))
+
 # Get membership on a given date
 
-get_membership_on_date <- function(con, date, offset = 0) {
+get_membership_on_date <- function(date, offset = 0) {
 
   # Ensure date is a weekday and then format
   date <- force_weekday(date, offset)
 
   #format date to YYYY-MM-DD
   date <- lubridate::parse_date_time(date, "ymd")
-  date_formatted <- format(date, "%Y-%m-%d")
-
-  qry <- sprintf(
-          "SELECT * FROM membership WHERE CALENDARDATE = '%s'",
-          date_formatted
-         )
+  date_formatted <- format(date, "%Y-%m-%d %H:%M")
+  filter_date <- sprintf("calendardate == '%s'", date_formatted)
+  
+  
+  out <- get_powerschool("ps_membership_defaults") %>%
+    select(studentid, schoolid, calendardate, starts_with("_fivetran_deleted")) %>%
+    filter_("!`_fivetran_deleted`", 
+            filter_date) %>%
+    drop_fivetran_cols()
 
   # return
-  tbl(con, sql(qry))
+  collect(out)
 
 
 

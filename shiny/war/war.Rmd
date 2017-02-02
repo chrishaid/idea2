@@ -39,8 +39,10 @@ month_order <- c("Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
 source('lib/attendance_helpers.R')
 
 # ADA goals for each school
+att_goal <- .96
+
 goals <- data_frame(schoolabbreviation =  c("KAP", "KAMS", "KCCP", "KBCP", "KOP", "KOA"),
-                    goal = c(.96))
+                    goal = c(att_goal))
 
 lastXweeks <- ymd(as.character(floor_date(today() - weeks(6), unit="week")+1))
 last6weeks <- as.character(lastXweeks)
@@ -90,7 +92,7 @@ att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
              week_of_date_short_label,
              enrolled,
              present) %>%
-      mutate(goal = round(.97*enrolled),
+      mutate(goal = round(att_goal*enrolled),
              day = wday(date)) %>%
       gather(key = "variable",
              value = "value", enrolled:goal)
@@ -111,7 +113,7 @@ att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
                week_of_date_short_label,
                enrolled,
                present) %>%
-        mutate(goal = round(.97*enrolled),
+        mutate(goal = round(att_goal*enrolled),
                day = wday(date)) %>%
         gather(key = "variable",
                value = "value", enrolled:goal)
@@ -133,7 +135,7 @@ att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
                week_of_date_short_label,
                enrolled,
                present) %>%
-        mutate(goal = round(.97*enrolled),
+        mutate(goal = round(att_goal*enrolled),
                day = wday(date)) %>%
         gather(key = "variable",
                value = "value", enrolled:goal)
@@ -158,9 +160,9 @@ att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
     if(input$att_level == "school") {
       weekly_out <- ada_weekly_school %>%
         mutate(name = schoolabbreviation,
-               threshold = ifelse(weekly_ada>=.97*100,
-                                  sprintf("Weekly ≥ %s%%", round(.97*100)),
-                                  sprintf("Weekly < %s%%",  round(.97*100))
+               threshold = ifelse(weekly_ada>=att_goal*100,
+                                  sprintf("Weekly ≥ %s%%", round(att_goal*100)),
+                                  sprintf("Weekly < %s%%",  round(att_goal*100))
                                   )
               )
      }
@@ -173,9 +175,9 @@ att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
       weekly_out <- ada_weekly_school_grade %>%
       filter(schoolabbreviation == input$att_school) %>%
         mutate(name = grade_level,
-               threshold = ifelse(weekly_ada>=.97*100,
-                                  sprintf("Weekly ≥ %s%%", round(.97*100)),
-                                  sprintf("Weekly < %s%%",  round(.97*100))
+               threshold = ifelse(weekly_ada>=att_goal*100,
+                                  sprintf("Weekly ≥ %s%%", round(att_goal*100)),
+                                  sprintf("Weekly < %s%%",  round(att_goal*100))
                                   )
               )
      }
@@ -189,9 +191,9 @@ att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
                schoolabbreviation == input$att_school
                ) %>%
         mutate(name = home_room,
-               threshold = ifelse(weekly_ada>=.97*100,
-                                  sprintf("Weekly ≥ %s%%", round(.97*100)),
-                                  sprintf("Weekly < %s%%",  round(.97*100))
+               threshold = ifelse(weekly_ada>=att_goal*100,
+                                  sprintf("Weekly ≥ %s%%", round(att_goal*100)),
+                                  sprintf("Weekly < %s%%",  round(att_goal*100))
                                   )
               )
    }
@@ -525,16 +527,14 @@ plotOutput("transfer_plot")
 ### Historical Transfers by Month
 ```{r}
 renderPlot({
-  ggplot(transfers_by_month_2 %>%
-         group_by(month, reason, school_name) %>%
-         summarize(transfers = sum(transfers, na.rm = TRUE)),
+  ggplot(transfers_by_month_by_school,
        aes(x=month, y=reason)) +
-  geom_tile(aes(fill = transfers),
+  geom_tile(aes(fill = pct*100),
             color = "black") +
   viridis::scale_fill_viridis(option = "D") +
   facet_grid(school_name ~ .) +
   theme_minimal() +
-  labs(x = "", y="", fill = "Transfer Count")
+  labs(x = "", y="", fill = "Transfer Pct")
 })
 ```
 

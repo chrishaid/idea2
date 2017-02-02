@@ -6,10 +6,13 @@ require(RSQLServer)
 require(readr)
 require(lubridate)
 require(stringr)
+require(silounloadr)
 
 setwd("/jobs/idea/suspensions")
 
 source("lib/helpers.R")
+
+
 
 # Connect to Silo
 
@@ -158,3 +161,7 @@ save(susp, susp_plot_data, file="/data/suspensions.Rdata")
 
 #message("Telling Shiny Server to restart")
 system('touch /srv/shiny-server/war/restart.txt')
+
+
+
+
