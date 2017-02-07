@@ -16,3 +16,6 @@
 # any log files
 *.log
 *.logs
+
+#json keys
+data/config/bq/*.json
