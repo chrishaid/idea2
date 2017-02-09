@@ -23,8 +23,6 @@ RUN R -e "devtools::install_github('rstudio/DT')"
 
 RUN R -e "install.packages('zoo')"
 
-RUN R -e "devtools::install_github('chrishaid/silounloadr')"
-
 RUN R -e "devtools::install_github('chrishaid/deanslistr')"
 
 RUN R -e "install.packages('futile.logger')"
@@ -33,6 +31,9 @@ RUN R -e "install.packages('googleCloudStorageR')"
 
 RUN R -e "install.packages('janitor')"
 
+RUN R -e "devtools::install_github('chrishaid/silounloadr')"
+
+RUN R -e "devtools::install_github('hadley/dplyr')"
 
 # add Python for scripts that require python
 
