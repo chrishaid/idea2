@@ -35,6 +35,7 @@ RUN R -e "devtools::install_github('chrishaid/silounloadr')"
 
 RUN R -e "devtools::install_github('hadley/dplyr')"
 
+RUN R -e "install.packages('forcats')"
 # add Python for scripts that require python
 
 
