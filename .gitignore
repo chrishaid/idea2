@@ -23,4 +23,3 @@ data/config/bq/*.json
 
 # Dropbox ephemera
 .dropbox
->>>>>>> master
