@@ -2,7 +2,7 @@ setwd("/jobs/silo/deanslist")
 
 readRenviron("/config/.Renviron")
 
-Sys.setenv("GCS_AUTH_FILE" = "/config/gcs/.httr-oauth")
+Sys.setenv("GCS_AUTH_FILE" = "/config/gcs/kipp-chicago-silo-2-3789ce3e3415.json")
 
 library(silounloadr)
 library(dplyr)
@@ -71,12 +71,13 @@ suspensions_2 <- suspensions %>%
 
 
 
-# Test loading into s3 bucket.
+# Test loading into GCS bucket.
 flog.info("Setting global bucket on GCS to deanslist")
 
 gcs_global_bucket("deanslist")
 
 flog.info("Uploading data to GCS")
+
 ftry(gcs_upload(suspensions_2, name = "suspensions/files/suspensions.csv"))
 
 flog.info("Upload Complete")
