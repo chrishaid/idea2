@@ -23,6 +23,8 @@ RUN R -e "devtools::install_github('rstudio/DT')"
 
 RUN R -e "install.packages('zoo')"
 
+RUN R -e "devtools::install_github('hadley/dplyr')"
+
 RUN R -e "devtools::install_github('chrishaid/silounloadr')"
 
 RUN R -e "devtools::install_github('chrishaid/deanslistr')"
