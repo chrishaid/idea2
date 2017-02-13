@@ -1,5 +1,6 @@
 # Environment variables
 .env
+.Renviron
 
 # config files used by cron
 *.dcf
@@ -16,3 +17,10 @@
 # any log files
 *.log
 *.logs
+
+#json keys
+data/config/bq/*.json
+data/config/gcs/*.json
+
+# Dropbox ephemera
+.dropbox

@@ -4,7 +4,7 @@ output:
   flexdashboard::flex_dashboard:
     orientation: rows
     theme: lumen
-    vertical_layout: scroll
+    vertical_layout: fill
 runtime: shiny
 ---
 
@@ -19,6 +19,10 @@ library(timevis)
 library(Cairo)
 library(sunburstR)
 library(stringr)
+library(purrr)
+library(tidyr)
+library(janitor)
+library(forcats)
 
 enableBookmarking(store = "url")
 # Load assignments data
@@ -32,16 +36,25 @@ classes <- c(2011:2020)
 
 counselors <- unique(contacts_summary$name.y)
 
-statuses <- unique(contacts_summary$status_c)
+statuses <- unique(contacts_summary$status_c) %>% discard(is.na)
+
+counselors_2021 <- c("Catrina Thomas", "China Hill", "Tiffany Harrell")
 
  todays_date <- today()
  days_elapsed_7 <- todays_date - days(7)
  days_elapsed_30 <- todays_date - days(30)
  days_elapsed_90 <- todays_date - days(90)
 
- contact_goal_7 <- 15
- contact_goal_30 <- as.integer(contact_goal_7 / 7 * 30)
- contact_goal_90 <- contact_goal_30 * 3
+ start <- ymd("2017-01-01")
+ daily <- 739 / (96 * 6)
+ contact_goal_7 <- daily * 7 #15
+ contact_goal_30 <- daily * 30 #as.integer(contact_goal_7 / 7 * 30)
+ contact_goal <- 739 / 6
+
+ day <- wday(today(), label=TRUE)
+ week <- today() %m-% days(1:7)
+ last_sunday <- which(wday(week, label=TRUE) %in% "Sun")
+ set_date <- ifelse(day == "Sun", today(), week[last_sunday])
 
  noble_schools <-
   c("Rowe-Clark Math and Science Academy",
@@ -89,7 +102,7 @@ selectInput("counselor",
             "Counselors",
             choices = counselors,
             multiple = TRUE,
-            selected = c("Catrina Clayton",
+            selected = c("Catrina Thomas",
                          "China Hill",
                          "Deja Manuel",
                          "Jamie Hawley",
@@ -122,24 +135,27 @@ contacts_filtered <- reactive({
   filtered <- contacts_details %>%
     filter(kipp_hs_class_c %in% input$class,
            name.y %in% input$counselor,
-           status_c %in% input$status)
+           status_c %in% "Successful")
 
   out<-list()
 
 
   out$last_7 <- nrow(filtered %>%
-                        filter(created_date.x >= days_elapsed_7
-                        )
+                        filter(date_c >= as_date(set_date)) %>%
+                         select(contact_c) %>%
+                         unique()
                 )
 
   out$last_30 <- nrow(filtered %>%
-                        filter(created_date.x >= days_elapsed_30
-                        )
+                        filter(date_c >= days_elapsed_30) %>%
+                         select(contact_c) %>%
+                         unique()
                 )
 
-  out$last_90 <- nrow(filtered %>%
-                        filter(created_date.x >= days_elapsed_90
-                        )
+  out$begin <- nrow(filtered %>%
+                        filter(date_c >= start) %>%
+                         select(contact_c) %>%
+                         unique()
                 )
 
 
@@ -157,11 +173,11 @@ contacts_filtered <- reactive({
 
 ```{r}
 renderValueBox({
-  valueBox(value = contacts_filtered()$last_90,
-           caption = sprintf("Contacts last 90 days (goal: %s)",
-                             contact_goal_90*length(input$counselor)),
+  valueBox(value = contacts_filtered()$begin,
+           caption = sprintf("Contacts since Jan 1st (goal: %s)",
+                             floor(contact_goal*length(input$counselor))),
     icon = "fa-calendar-check-o",
-    color = ifelse(contacts_filtered()$last_90 < contact_goal_90*length(input$counselor), "warning", "primary"))
+    color = ifelse(contacts_filtered()$begin < contact_goal*length(input$counselor), "warning", "primary"))
   })
 ```
 
@@ -171,9 +187,9 @@ renderValueBox({
 renderValueBox({
   valueBox(value = contacts_filtered()$last_30,
            caption = sprintf("Contacts last 30 days (goal: %s)",
-                             contact_goal_30*length(input$counselor)),
+                             floor(contact_goal_30*length(input$counselor))),
     icon = "fa-calendar-check-o",
-    color = ifelse(contacts_filtered()$last_30 < contact_goal_30*length(input$counselor), "warning", "primary"))
+    color = ifelse(contacts_filtered()$last_30 < floor(contact_goal_30*length(input$counselor)), "warning", "primary"))
   })
 ```
 
@@ -183,10 +199,10 @@ renderValueBox({
 ```{r}
 renderValueBox({
   valueBox(value = contacts_filtered()$last_7,
-           caption = sprintf("Contacts last 7 days (goal: %s)",
-                             contact_goal_7*length(input$counselor)),
+           caption = sprintf("Contacts since Sunday (goal: %s)",
+                             floor(contact_goal_7*length(input$counselor))),
     icon = "fa-calendar-check-o",
-    color = ifelse(contacts_filtered()$last_7 < contact_goal_7*length(input$counselor), "warning", "primary"))
+    color = ifelse(contacts_filtered()$last_7 < floor(contact_goal_7*length(input$counselor)), "warning", "primary"))
   })
 ```
 
@@ -195,7 +211,122 @@ renderValueBox({
 Row {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
-### Summary {.no-padding}
+###Unique {.no-padding}
+
+
+```{r}
+plotOutput("unicontacts_flow",
+            brush = brushOpts(id = "plot_brush", direction = "x")
+          )
+
+
+output$unicontacts_flow <-renderPlot({
+
+if(!grepl("~", input$facet_by)) { # not class and counselor
+
+  if(input$facet_by == "name.y") { #if counselor
+    filter_cond <- ~ name.y %in% input$counselor
+    
+  } else { # if class
+    filter_cond <- ~ kipp_hs_class_c %in% input$class
+   
+  }
+
+  # Class or counselor plot
+  p <- contacts_details %>%
+  filter(kipp_hs_class_c %in% classes,
+         status_c %in% statuses) %>%
+  group_by_("date_c", "status_c", "contact_c", input$facet_by) %>%
+  summarise() %>%
+  filter_(filter_cond,
+          ~date_c >= start) %>%
+  ungroup()  
+  
+  first_success <- p %>%
+    filter(!duplicated(contact_c),
+           status_c %in% "Successful") 
+  
+  first_outreach <- p %>%
+    filter(!duplicated(contact_c), 
+           status_c %in% "Outreach")
+  
+  outreach_success <- p %>%
+    distinct(contact_c, status_c, .keep_all=TRUE) %>%
+    filter(status_c %in% "Successful") %>%
+    semi_join(first_outreach, by="contact_c")
+  
+  u_table <- bind_rows(first_success, first_outreach, outreach_success) %>% 
+    group_by_("date_c", input$facet_by, "status_c") %>%
+    summarise(N=n()) %>%
+    ggplot(aes(x = date_c, y = N)) +
+    geom_bar(color = "white",
+           stat ="identity",
+           aes(alpha = status_c),
+           fill = '#440154FF') +
+    scale_alpha_discrete(range = c(1/5, 1),
+                       guide = guide_legend(title= NULL)) +
+    facet_wrap(input$facet_by) +
+    scale_x_datetime(date_labels = "%b %d",
+                   date_breaks = "1 week") +
+    theme_bw() +
+    theme(legend.position = "bottom",
+        axis.text.x = element_text(angle=45, hjust = 1)) +
+    labs(y = "Number of contacts",
+       x = "Date", fill=NULL)
+  } else { # both class and counselor
+   
+     # Class and counselor plot
+
+    p <- contacts_details %>%
+      filter(status_c %in% statuses) %>%
+      group_by_("date_c", "status_c", "contact_c", "name.y", "kipp_hs_class_c")  %>%
+      summarise() %>% 
+      filter(name.y %in% input$counselor,
+             kipp_hs_class_c %in% input$class,
+             date_c >= start) %>%
+      ungroup() 
+    
+    first_success <- p %>% 
+      filter(!duplicated(contact_c),
+             status_c %in% "Successful") 
+  
+    first_outreach <- p %>%
+      filter(!duplicated(contact_c),
+             status_c %in% "Outreach")
+  
+    outreach_success <- p %>%
+      distinct(contact_c, status_c, .keep_all=TRUE) %>%
+      filter(status_c %in% "Successful") %>% 
+     semi_join(first_outreach, by="contact_c")
+    
+    u_table <- bind_rows(first_success, first_outreach, outreach_success) %>% 
+      group_by(date_c, name.y, kipp_hs_class_c, status_c) %>%
+      summarise(N=n()) %>%
+      ggplot(aes(x = date_c, y = N)) +
+      geom_bar(color = "white",
+               stat ="identity",
+               aes(alpha = status_c),
+               fill = '#440154FF') +
+      scale_alpha_discrete(range = c(1/5, 1),
+                       guide = guide_legend(title= NULL)) + 
+      facet_grid(name.y ~ kipp_hs_class_c) +
+      scale_x_datetime(date_labels = "%b %d",
+                   date_breaks = "1 week") +
+      theme_bw() +
+      theme(legend.position = "bottom",
+        axis.text.x = element_text(angle=45, hjust = 1)) +
+      labs(y = "Number of contacts",
+       x = "Date", fill=NULL)
+  }
+
+
+  u_table
+
+ })
+
+```
+
+### Total {.no-padding}
 
 ```{r}
 
@@ -216,7 +347,8 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
 
   # Class or counselor plot
   p <- contacts_details %>%
-    filter(status_c %in% input$status) %>%
+    filter(status_c %in% input$status,
+           kipp_hs_class_c %in% classes) %>% ##added since we were capturing 2021 data ) %>%
     group_by_("date_c", input$facet_by) %>%
     summarize(N = n()) %>%
     filter_(filter_cond,
@@ -278,7 +410,152 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
 ```
 
 
-Classes
+
+HS Application Submission {data-orientation=columns}
+============================================================
+
+Overall Submissions Column
+------------------------------------------------------------
+### Application Status 
+```{r}
+plotOutput("hs_apps", 
+            click = clickOpts(id = "plot_click", clip = TRUE))
+
+hs_2021 <- hs_applications %>%
+  filter(grepl("KIPP", school),
+         class %in% 2021,
+         counselor %in% counselors_2021)          
+
+output$hs_apps <- renderPlot({ 
+  
+hs_2021 %>% 
+  unique() %>%
+  mutate(value = TRUE) %>%
+  spread(key = status, value = value, fill = FALSE) %>%
+  clean_names %>%
+  mutate(status = ifelse(submitted, "submitted", 
+                         ifelse(in_progress | wishlist, "prog_wish", "ns"))) %>%
+  group_by(school, status) %>%
+  summarise(N=n()) %>%
+  ggplot(aes(x=fct_rev(status), y = N)) +
+  geom_bar(aes(fill= status),
+           show.legend = TRUE,
+           stat="identity") +
+  facet_wrap("school", nrow = 1) +
+  viridis::scale_fill_viridis(discrete = T, direction = -1, option = "D",
+                     breaks = c("prog_wish", "ns", "submitted"),
+                     labels = c("In Progress/Wishlist", "No Submission", "Submitted"))+
+  scale_x_discrete(breaks = NULL) +
+  labs(x=NULL, y="Number of Students", fill = NULL) +
+  theme_bw() +
+  theme(plot.title = element_text(face = "bold", hjust=0.5),
+        axis.title.y = element_text(face="bold"),
+        legend.position = "bottom")
+  
+})
+
+
+
+```
+
+###Student 
+
+```{r}
+name_header <- reactive({
+  req(input$student_click)
+
+names_ordered <- students_data_bar %>%
+    ungroup %>%
+    filter(school %in% input$plot_click[[3]]) %>% 
+    spread(key=status, value = n_applications) %>%
+    arrange(submitted, no_status, wishlist) %>%
+    select(name, class) %>%
+    unique
+#identify students from click position (from stacked bar plot)
+plot_student_id <- ifelse(input$student_click[[2]] < 1, 1, floor(input$student_click[[2]]))
+
+name_class <- list()
+
+name_class$names_ordered <- names_ordered
+
+name_class$student_id <- plot_student_id
+
+name_class$names <- names_ordered[[1]][plot_student_id]
+
+name_class$class <- names_ordered[[2]][plot_student_id]
+
+name_class
+})
+
+
+```
+
+```{r}
+
+p(strong(h4(textOutput("text"))))
+
+output$text <- renderText({
+  if(is.null(input$student_click)) {
+ "Click on the student bar plot to see a student's high school application history."
+} else {
+ paste0(name_header()$names, ", Class of ", name_header()$class)
+}
+})
+
+ renderTable({ 
+   req(input$student_click)
+
+plot_student_id <- name_header()$student_id
+
+plot_student_name <- name_header()$names_ordered[[1]][plot_student_id]
+  
+student_table %>% 
+   filter(grepl("KIPP", current_school),
+          class %in% 2021,
+          counselor %in% counselors_2021) %>%
+   mutate(current_school = ifelse(grepl("Ascend", current_school), 
+                                  "KIPP Ascend Middle School", current_school)) %>%
+     filter(current_school %in% input$plot_click[[3]]) %>%#add input$plot_click[[3]]
+     mutate(name = sprintf("%s %s", first_name, last_name)) %>% 
+     #mutate(app_school_name = str_extract(app_school, ".*(?=-)")) %>% as.data.frame()
+     #select(name, hs_name, sub_status, decision, matriculation) %>%
+     mutate(sub_status = ifelse(is.na(sub_status) & is.na(hs_name) , "No Submission",
+                                ifelse(is.na(sub_status),
+                                       "No Status", sub_status))) %>%
+  filter(name %in% plot_student_name) %>%
+  select("High School Name" = hs_name, "Submission Status" = sub_status, Decision = decision,
+         Matriculation = matriculation)
+
+})
+
+```
+
+Schools 
+------------------------------------------------------------
+
+### School View
+```{r}
+p(strong(h4(textOutput("text2"))))
+output$text2 <- renderText({
+  if(is.null(input$plot_click)) {
+ "Click on a school plot to see high school application submission status by student."
+} else {
+ ""
+}
+})
+plotOutput("students_barplot",
+            click = clickOpts(id = "student_click")
+          )
+
+output$students_barplot <- renderPlot({
+  req(input$plot_click)
+  hs_app(students_data_bar, input$plot_click[[3]])
+})
+
+```
+
+
+Classes {data-orientation=columns}
 ======================================================================
 Inputs {.sidebar}
 -----------------------------------------------------------------------
@@ -308,7 +585,7 @@ The **sunburst sequence** shows the selected class's complete set of sequences f
 
 Longer "wedges" that stick out far from the sunburst indicate sets of students that have had more transitions than those "wedges" that remain close to the center.
 
-Row {data-height=400}
+Row {data-height=300}
 -----------------------------------------------------------------------
 ### Sunburst (all sequences of 8th grade completers)
 
@@ -442,10 +719,10 @@ plotOutput("hs_outcome")
 ```
 
 
-Row {data-height=8000}
+Row 
 -----------------------------------------------------------------------
 
-### Timelines
+### Timelines {data-height=8000}
 
 ```{r}
 
