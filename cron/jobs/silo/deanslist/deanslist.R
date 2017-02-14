@@ -52,7 +52,7 @@ suspensions <- susp_2$result %>% keep(ok) %>% bind_rows()
 
 flog.info("Extracing names, dates, and the like")
 suspensions_2 <- suspensions %>%
-  mutate(school = str_extract(school_name, "K.{3,4}$"),
+  mutate(school = str_extract(school_name, "K.{2,3}$"),
          StartDate = ymd(StartDate),
          Month = month(StartDate, label = TRUE, abbr = TRUE),
          NumDays = as.integer(NumDays)) %>%
