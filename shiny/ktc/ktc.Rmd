@@ -535,6 +535,7 @@ Schools
 
 ### School View
 ```{r}
+#test2
 p(strong(h4(textOutput("text2"))))
 output$text2 <- renderText({
   if(is.null(input$plot_click)) {
