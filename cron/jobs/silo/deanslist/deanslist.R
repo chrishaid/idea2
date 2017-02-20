@@ -80,4 +80,27 @@ flog.info("Uploading data to GCS")
 
 ftry(gcs_upload(suspensions_2, name = "suspensions/files/suspensions.csv"))
 
-flog.info("Upload Complete")
+flog.info("Upload Complete") 
+
+## New Suspsenions ####
+
+susp_df <- bind_rows(susp_list)
+susp_rows <- susp_df$Penalties %>% 
+  map_lgl(~ifelse('IsSuspension' %in% names(.x), 
+                  grepl("Y",.[['IsSuspension']]), 
+                  FALSE
+  )
+  )
+
+susp_df_2<-
+  susp_df  %>% 
+  filter(susp_rows) %>%
+  mutate(types = 
+           Penalties %>% map_chr(~paste(.x$PenaltyName, collapse = ", ")))
+
+
+f <- function(input, output) jsonlite::write_json(input, path = output, pretty = T, dataframe = "rows")
+
+gcs_upload(susp_df_2, name = "suspensions/files/suspensions.json", 
+           object_function = f,
+           type = 'application/json')
