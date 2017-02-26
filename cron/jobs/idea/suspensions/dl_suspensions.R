@@ -103,7 +103,7 @@ oss_rates<- oss_2 %>%
   group_by(school_name) %>%
   mutate(
     N_susps = if_else(school_name == "KBCP" & month == "Dec",
-                      N_susps + 22L, 
+                      N_susps, 
                       N_susps),
     cum_susps = cumsum(N_susps)
   ) %>%
@@ -145,13 +145,114 @@ iss_rates<- iss_2 %>%
   mutate(susp_rate = N_susps/adm*100,
          cum_susp_rate = cum_susps/adm*100)
 
+
+flog.info("Calculating regional rates")
+oss_w_kop<-oss_2 %>%
+  mutate(month_year = floor_date(startdate, unit = "month")) %>%
+  group_by(school_name, month, month_year) %>%
+  summarize(N_susps = n()) %>%
+  group_by(school_name) %>%
+  mutate(
+    N_susps = if_else(school_name == "KBCP" & month == "Dec",
+                      N_susps + 22L, 
+                      N_susps),
+    cum_susps = cumsum(N_susps)
+  ) %>%
+  right_join(adm, by = "school_name") %>%
+  mutate(susp_rate = N_susps/adm*100,
+         cum_susp_rate = cum_susps/adm*100,
+         month = if_else(school_name == "KOP", "Feb", as.character(month)),
+         month_year = if_else(school_name == "KOP", as.Date(ymd('2017-02-01')), as.Date(month_year)),
+         N_susps = if_else(school_name == "KOP", 0L, N_susps),
+         cum_susps = if_else(school_name == "KOP", 0L, cum_susps),
+         susp_rate = if_else(school_name == "KOP", 0, susp_rate),
+         cum_susp_rate = if_else(school_name == "KOP", 0, cum_susp_rate)) %>%
+  arrange(month_year) %>%
+  mutate(month = forcats::fct_inorder(month,ordered = T ))
+
+
+oss_max<-oss_w_kop %>%
+  group_by(school_name) %>%
+  filter(month == max(month)) 
+
+
+
+oss_kcs<-oss_2 %>%
+  mutate(month_year = floor_date(startdate, unit = "month")) %>%
+  group_by(school_name, month, month_year) %>%
+  summarize(N_susps = n()) %>%
+  group_by(school_name) %>%
+  mutate(
+    N_susps = if_else(school_name == "KBCP" & month == "Dec",
+                      N_susps + 22L, 
+                      N_susps),
+    cum_susps = cumsum(N_susps)
+  ) %>%
+  right_join(adm, by = "school_name") %>% ungroup() %>%
+  mutate(susp_rate = N_susps/adm*100,
+         cum_susp_rate = cum_susps/adm*100,
+         month = if_else(school_name == "KOP", "Feb", as.character(month)),
+         month_year = if_else(school_name == "KOP", as.Date(ymd('2017-02-01')), as.Date(month_year)),
+         N_susps = if_else(school_name == "KOP", 0L, N_susps),
+         cum_susps = if_else(school_name == "KOP", 0L, cum_susps),
+         susp_rate = if_else(school_name == "KOP", 0, susp_rate),
+         cum_susp_rate = if_else(school_name == "KOP", 0, cum_susp_rate)) %>%
+  arrange(month_year) %>% ungroup() %>%
+  mutate(month = forcats::fct_inorder(month,ordered = T )) %>%
+  filter(month == max(month)) %>%
+  ungroup() %>%
+  summarize(cum_susps = sum(cum_susps),
+            adm = sum(adm),
+            cum_susp_rate = cum_susps/adm*100) %>%
+  mutate(school_name = "Region\n(All grades)")
+
+
+oss_kcs_no_k2 <- oss_2 %>%
+  filter(!gradelevelshort %in% c("K", "1st", "2nd")) %>%
+  mutate(month_year = floor_date(startdate, unit = "month")) %>%
+  group_by(school_name, month, month_year) %>%
+  summarize(N_susps = n()) %>%
+  group_by(school_name) %>%
+  mutate(
+    N_susps = if_else(school_name == "KBCP" & month == "Dec",
+                      N_susps + 22L, 
+                      N_susps),
+    cum_susps = cumsum(N_susps)
+  ) %>%
+  right_join(adm, by = "school_name") %>% ungroup() %>%
+  mutate(susp_rate = N_susps/adm*100,
+         cum_susp_rate = cum_susps/adm*100,
+         month = if_else(school_name == "KOP", "Feb", as.character(month)),
+         month_year = if_else(school_name == "KOP", as.Date(ymd('2017-02-01')), as.Date(month_year)),
+         N_susps = if_else(school_name == "KOP", 0L, N_susps),
+         cum_susps = if_else(school_name == "KOP", 0L, cum_susps),
+         susp_rate = if_else(school_name == "KOP", 0, susp_rate),
+         cum_susp_rate = if_else(school_name == "KOP", 0, cum_susp_rate)) %>%
+  arrange(month_year) %>% ungroup() %>%
+  mutate(month = forcats::fct_inorder(month,ordered = T )) %>%
+  filter(month == max(month)) %>%
+  ungroup() %>%
+  summarize(cum_susps = sum(cum_susps),
+            adm = sum(adm),
+            cum_susp_rate = cum_susps/adm*100) %>%
+  mutate(school_name = "Region\n(3-8)")
+
+
+
+oss_regional<-bind_rows(oss_max, oss_kcs, oss_kcs_no_k2) %>%
+  mutate(regional = grepl("Region", school_name))
+
+
+
+
 oss <- oss_2
 iss <- iss_2
 
-save(susps,
+  save(susps,
      penalties,
      oss,
      oss_rates,
+     oss_regional,
      iss,
      iss_rates,
      adm,
