@@ -31,11 +31,12 @@ RUN R -e "install.packages('googleCloudStorageR')"
 
 RUN R -e "install.packages('janitor')"
 
+RUN R -e "install.packages('tidyverse')"
+
 RUN R -e "devtools::install_github('chrishaid/silounloadr')"
 
 RUN R -e "devtools::install_github('hadley/dplyr')"
 
-RUN R -e "install.packages('forcats')"
 # add Python for scripts that require python
 
 
