@@ -61,10 +61,13 @@ penalties <-
   select(suspensionid, 
          startdate, 
          enddate, 
+         numdays,
          penaltyname
   ) %>%
   mutate(startdate = ymd(startdate),
-         enddate = ymd(enddate)) %>%
+         enddate = ymd(enddate),
+         diff_days = enddate - startdate,
+         numdays = as.integer(numdays)) %>%
   arrange(startdate) %>%
   #filter(!is.na(startdate)) %>%
   mutate(suspensionid = as.integer(suspensionid))
