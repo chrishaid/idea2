@@ -62,7 +62,7 @@ RUN R -e "install.packages(c('RCurl', 'rmarkdown', 'shiny', 'xtable', 'Cairo', '
 
 #RUN R -e "devtools::install_github('hadley/readr')"
 
-RUN R -e "devtools::install_github('hadley/dplyr')"
+#RUN R -e "devtools::install_github('hadley/dplyr')"
 
 RUN R -e "devtools::install_github('jennybc/googlesheets')"
 

@@ -35,7 +35,7 @@ RUN R -e "install.packages('tidyverse')"
 
 RUN R -e "devtools::install_github('chrishaid/silounloadr')"
 
-RUN R -e "devtools::install_github('hadley/dplyr')"
+RUN R -e "devtools::install_github('hadley/dplyr@63d4a9f5')"
 
 # add Python for scripts that require python
 
