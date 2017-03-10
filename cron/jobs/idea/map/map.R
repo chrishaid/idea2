@@ -65,7 +65,7 @@ map_mv_15 <-
 
 # Create summary objects
 
-map_sum_15 <- summary(map_mv_15$growth_df)
+map_sum_15 <- summary(map_mv_15$growth_df, verbose=FALSE)
 #map_sum_11 <- summary(map_mv_11$growth_df)
 
 # get current PowerSchool Roster
@@ -87,6 +87,7 @@ student_enrollment <- current_ps %>%
 
 # Calculate current students tested.
 current_map_term <- map_mv_15$cdf %>%
+  ungroup() %>%
   filter(teststartdate == max(teststartdate)) %>%
   select(termname) %>%
   unique() %>%
@@ -115,8 +116,10 @@ student_enrollment_tested <-
 
 
 # Let's grap historical scores
-hist_scores <- map_mv_15$cdf %>%
+hist_scores <- map_mv_15$cdf %>% 
+  ungroup() %>%
   inner_join(map_mv_15$roster %>%
+               ungroup() %>%
                filter(implicit_cohort >= 2021) %>%
                select(termname, studentid, studentlastname,
                       studentfirstname, implicit_cohort, year_in_district),
