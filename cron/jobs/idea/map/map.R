@@ -6,13 +6,18 @@ require(lubridate)
 require(purrr)
 require(stringr)
 require(mapvizieR)
+require(futile.logger)
 
 setwd("/jobs/idea/map")
 
+# set up logging
+flog.threshold(TRACE)
+flog.appender(appender.tee("logs/suspensions.logs"))
+
+flog.info("Source helpers")
 source("lib/helpers.R")
 
-# Load config and set other variables ####
-
+flog.info("Load config and set other variables")
 config <- as.data.frame(read.dcf("/config/config.dcf"),
                         stringsAsFactors = FALSE)
 
@@ -23,52 +28,40 @@ schools <- data_frame(schoolid = c(78102, 7810, 400146, 400163, 4001802, 400180)
 
 first_day <- config$FIRST_DAY
 
-# Connect to Silo ####
+flog.info("Connect to Silo")
 silo_nwea_db <- src_sqlserver(server =  config$SILO_URL,
                              database = config$SILO_DBNAME_NWEA,
                              properties = list(user = config$SILO_USER,
                                                password = config$SILO_PWD))
 
 
-# Pull map data
+flog.info("Pull map data")
+
 map_cdf <- tbl(silo_nwea_db,
                sql("SELECT * FROM MAP$comprehensive#plus_cps WHERE GrowthMeasureYN='TRUE'")
           )
 
 map_cdf <- collect(map_cdf)
 
-# Separate combined table into assessment results and roster
+flog.info("Separate combined table into assessment results and roster") 
 
 map_sep <- separate_cdf(map_cdf,district_name = "KIPP Chicago")
 
-# create mapvizieR object for 2015
+flog.info("Create mapvizieR object for 2015") 
 
 map_mv_15 <-
   mapvizieR(
     cdf = map_sep$cdf,
     roster = map_sep$roster,
-     include_unsanctioned_windows = TRUE #,
-    # norm_df_long = mapvizieR:::norms_students_wide_to_long(
-    #                 student_growth_norms_2015
-    #                )
+     include_unsanctioned_windows = TRUE 
     )
 
-# map_mv_11 <-
-#   mapvizieR(
-#     cdf = map_sep$cdf,
-#     roster = map_sep$roster,
-#     include_unsanctioned_windows = TRUE,
-#     norm_df_long = mapvizieR:::norms_students_wide_to_long(
-#       student_growth_norms_2011
-#     )
-#   )
+flog.info("Create summary objects") 
 
-# Create summary objects
+map_sum_15 <- summary(map_mv_15$growth_df)
 
-map_sum_15 <- summary(map_mv_15$growth_df, verbose=FALSE)
-#map_sum_11 <- summary(map_mv_11$growth_df)
+flog.info("Get current PowerSchool Roster") 
 
-# get current PowerSchool Roster
 current_ps <- tbl(silo_nwea_db,
                sql("SELECT * FROM PS_mirror..Students WHERE Enroll_Status=0")
                )
@@ -76,8 +69,8 @@ current_ps <- tbl(silo_nwea_db,
 current_ps <- collect(current_ps)
 
 names(current_ps) <- tolower(names(current_ps))
-# calculate students per grade
 
+flog.info("calculate students per grade")
 student_enrollment <- current_ps %>%
   group_by(schoolid, grade_level) %>%
   summarize(N = n()) %>%
@@ -85,7 +78,7 @@ student_enrollment <- current_ps %>%
   rename(grade = grade_level)
 
 
-# Calculate current students tested.
+flog.info("Calculate current students tested")
 current_map_term <- map_mv_15$cdf %>%
   ungroup() %>%
   filter(teststartdate == max(teststartdate)) %>%
@@ -115,7 +108,7 @@ student_enrollment_tested <-
   mutate(Percent = Tested/Enrolled)
 
 
-# Let's grap historical scores
+flog.info("Getting historical scores")
 hist_scores <- map_mv_15$cdf %>% 
   ungroup() %>%
   inner_join(map_mv_15$roster %>%
@@ -142,7 +135,7 @@ hist_scores <- map_mv_15$cdf %>%
   ) %>%
   arrange(desc(SY), Season, Subject, School, Grade)
 
-
+flog.info("Saving data to disk.")
 save(map_mv_15,
      map_sum_15,
      current_ps,
@@ -151,5 +144,7 @@ save(map_mv_15,
      hist_scores,
      file="/data/map.Rda")
 
-# Tell shiny to restart ####
+flog.info("Tell shiny to restart")
 system('touch /srv/shiny-server/map/restart.txt')
+
+flog.info("Complete!")
