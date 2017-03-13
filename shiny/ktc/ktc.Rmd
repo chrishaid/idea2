@@ -24,6 +24,7 @@ library(tidyr)
 library(janitor)
 library(forcats)
 
+
 enableBookmarking(store = "url")
 # Load assignments data
 load("/data/ktc.Rda")
@@ -408,11 +409,11 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
  })
 
 ```
+
 ###Projection
 
 ```{r}
 fillCol(height = 600, flex = c(NA, 1),
-  #inputPanel(
 radioButtons("line_proj", "Show",
              choices = c("Goal" = "goal",
                          "Projection (2017 Data)" = "2017",
@@ -427,6 +428,7 @@ plotOutput("proj_plot",
 )
 
 ```
+
 ```{r}
 
 output$proj_plot <-renderPlot({

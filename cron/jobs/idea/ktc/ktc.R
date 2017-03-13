@@ -32,7 +32,7 @@ contact_note_c <- get_alumni_db("contact_note_c", collect = TRUE)
 class_all <- prep_class()
 
 
-# Prep contancts ####
+# Prep contacts ####
 
 contacts_details <-
   contact_note_c %>%
@@ -102,7 +102,7 @@ counselors_2021 <- c("Catrina Thomas", "China Hill", "Tiffany Harrell")
            decision = application_status_c,
            matriculation = matriculation_decision_c)
 
-# Transistions ####
+# Transitions ####
 transitions_by_student <- class_all %>%
   filter(type != "KIPP School") %>%
   group_by(id) %>%
