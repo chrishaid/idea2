@@ -37,6 +37,8 @@ RUN R -e "devtools::install_github('chrishaid/silounloadr')"
 
 RUN R -e "devtools::install_github('hadley/dplyr@63d4a9f5')"
 
+RUN R -e "install.packages('prophet')"
+
 # add Python for scripts that require python
 
 
