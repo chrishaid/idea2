@@ -26,8 +26,7 @@ silo_ps_db <- src_sqlserver(server =  config$SILO_URL,
                                                password = config$SILO_PWD))
 
 # Get students ####
-students <- tbl(silo_ps_db, "students")
-
+students <- tbl(silo_ps_db, "students") %>% collect()
 
 
 # Get attendance ####
@@ -86,8 +85,7 @@ attend_student <- member_att %>%
          absent = (1 - present)*enrolled,
          date = ymd_hms(CALENDARDATE)) %>%
   left_join(students %>%
-              select(STUDENTID = ID, LASTFIRST, HOME_ROOM) %>%
-                collect(),
+              select(STUDENTID = ID, LASTFIRST, HOME_ROOM),
             by="STUDENTID") %>%
   inner_join(schools, by=c("SCHOOLID" = "schoolid")) %>%
   select(STUDENTID,
