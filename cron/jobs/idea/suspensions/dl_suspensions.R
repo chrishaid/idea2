@@ -186,9 +186,6 @@ oss_kcs<-oss_2 %>%
   summarize(N_susps = n()) %>%
   group_by(school_name) %>%
   mutate(
-    N_susps = if_else(school_name == "KBCP" & month == "Dec",
-                      N_susps + 22L, 
-                      N_susps),
     cum_susps = cumsum(N_susps)
   ) %>%
   right_join(adm, by = "school_name") %>% ungroup() %>%
