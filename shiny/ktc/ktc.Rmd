@@ -87,7 +87,7 @@ class_all <- class_all %>%
 
 ```
 
-Contacts
+Unique and Total Contacts{data-navmenu="Contacts"}
 ======================================================================
 Inputs {.sidebar}
 -----------------------------------------------------------------------
@@ -410,23 +410,29 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
 
 ```
 
-###Projection
+Projection {data-navmenu="Contacts"}
+========================================================
 
+Inputs {.sidebar}
+--------------------------------------------------------
 ```{r}
-fillCol(height = 600, flex = c(NA, 1),
 radioButtons("line_proj", "Show",
              choices = c("Goal" = "goal",
                          "Projection (2017 Data)" = "2017",
                          "Projection (Historical Data)" = "prophet",
-                         "Both" = "both"),
+                         "All" = "all"),
              selected = "goal",
-             inline = TRUE),
+             inline = FALSE)
+```
 
+Row
+----------------------------------------------------------
+### Projection
+
+```{r}
 plotOutput("proj_plot",
             brush = brushOpts(id = "proj_brush", direction = "x")
           )
-)
-
 ```
 
 ```{r}
@@ -456,7 +462,7 @@ output$proj_plot <-renderPlot({
                                   "Projection (2017)" = "#238A8DFF" ),
                        guide = "legend") +
     theme_bw() +
-    theme(legend.position = "bottom") +
+    theme(legend.position = "top") +
     labs(y = "Number of successful contacts",
          x = "Date")
 
@@ -478,7 +484,7 @@ output$proj_plot <-renderPlot({
                 fill = "#FEC98DFF"
                             )
     }
-  if(input$line_proj %in% "both"){
+  if(input$line_proj %in% "all"){
   p_graph <- p_graph +
     geom_line(data = goal_tbl, aes(x=ds, y= qmod,
                                    color = "Projection (2017)"),
@@ -501,18 +507,30 @@ output$proj_plot <-renderPlot({
 
 ```
 
-###Historical
+Historical {data-navmenu="Contacts"}
+========================================================
+
+Inputs {.sidebar}
+--------------------------------------------------------
+```{r}
+checkboxGroupInput("prophet_plot", "Show",
+     choices = c("Successful" = "successful",
+                 "Outreach" = "outreach",
+                 "Both" = "both"),
+     selected = "successful",
+     inline = FALSE)
+
+```
+
+Row
+---------------------------------------------------------
+### Historical
 
 ```{r}
 colors <- c("#440154FF",  "#FEC98DFF", "#238A8DFF")
 names(colors) <- c("successful", "outreach", "both")
-fillCol(flex= c(NA,2,2,2,3),
-        checkboxGroupInput("prophet_plot", "Show",
-             choices = c("Successful" = "successful",
-                         "Outreach" = "outreach",
-                         "Both" = "both"),
-             selected = "successful",
-             inline = TRUE),
+fillCol(flex= c(0.22, 0.22, 0.22, 0.32),
+width = "100%", height = "100%",
         plotOutput("trend"),
         plotOutput("holiday"),
         plotOutput("weekly"),

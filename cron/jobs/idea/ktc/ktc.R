@@ -83,7 +83,7 @@ counselors_2021 <- c("Catrina Thomas", "China Hill", "Tiffany Harrell")
     gather(key=status, value = n_applications,
     -c(id, last_name, first_name, counselor, name, color_name, x_na, school, class)) %>% #gather status
     mutate(n_applications = ifelse(is.na(n_applications), 0, n_applications)) %>%
-    group_by(name, status, color_name, n_applications, school, class) %>%
+    group_by(id, name, status, color_name, n_applications, school, class) %>%
     summarise()
 
 #prep data for student table
@@ -115,6 +115,12 @@ transitions_contacts<-transitions_by_student %>%
   inner_join(contacts_summary %>%
                group_by(contact_c) %>%
                summarize(contacts = sum(N)), by = c("id" = "contact_c"))
+
+statuses <- contacts_summary %>%
+ungroup() %>%
+select(status_c) %>%
+filter(!is.na(status_c)) %>%
+ unique()
 
  ##prophet ####
   dat_all <- contacts_details %>%
@@ -294,7 +300,7 @@ goal_tbl <- as.tbl(data.frame(goal_n = seq(0,740, by = 7.7),
                               ds = as.POSIXct(ymd("2017-01-01") + days(0:96))))
 
 success_csum <- df_final_csum %>%
-  filter(ds >= start)
+  filter(ds >= ymd("2017-01-01"))
 
 q_mod <- lm(y ~ I(as.numeric(ds)) + I(as.numeric(ds)^2), data = success_csum)
 
