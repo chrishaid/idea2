@@ -65,15 +65,17 @@ contacts_summary <- contacts_details %>%
 
 flog.info("Compiling high school applications by school")
   hs_applications <- contact %>%
-    left_join(applications, by = c("id"="applicant_c")) %>%
-    inner_join(user, by=c("owner_id" = "id"))%>%
+    left_join(applications,
+              by = c("id"="applicant_c")) %>%
+    inner_join(user,
+               by=c("owner_id" = "id"))%>%
     select(id,
-       last_name = last_name.x,
-       first_name = first_name.x,
-       status = application_submission_status_c,
-       counselor = name,
-       school = currently_enrolled_school_c,
-       class = kipp_hs_class_c) %>%
+           last_name = last_name.x,
+           first_name = first_name.x,
+           status = application_submission_status_c,
+           counselor = name,
+           school = currently_enrolled_school_c,
+           class = kipp_hs_class_c) %>%
 mutate(school = ifelse( grepl("Ascend", school),
                         "KIPP Ascend Middle School", school))
 
@@ -87,26 +89,49 @@ flog.info("Preparing data for student-level bar plot - hs applications")
   students_data_bar <- hs_applications %>%
   filter(school %in% middle_schools,
          class %in% hs_class(current_grade = 8)) %>%
-    group_by(id, last_name, first_name, status, school, class) %>%
+    group_by(id,
+             last_name,
+             first_name,
+             status,
+             school,
+             class) %>%
     summarize(n_applications = n()) %>%
     mutate(name = sprintf("%s %s", first_name, last_name)) %>%
     ungroup %>%
-    spread(key=status, value = n_applications) %>% ##status as a column
+    spread(key=status,
+           value = n_applications) %>% ##status as a column
     clean_names %>%
     mutate(submitted = ifelse(is.na(submitted), 0, submitted),
     no_status = ifelse(x_na == 1 & submitted == 0, 0, x_na),
     color_name = ifelse(submitted == 0, "red", "black")) %>% #setting name color
-    gather(key=status, value = n_applications,
-    -c(id, last_name, first_name, name, color_name, x_na, school, class)) %>% #gather status
+    gather(key=status,
+           value = n_applications,
+           -c(id,
+              last_name,
+              first_name,
+              name,
+              color_name,
+              x_na,
+              school,
+              class)) %>% #gather status
     mutate(n_applications = ifelse(is.na(n_applications), 0, n_applications)) %>%
-    group_by(id, name, status, color_name, n_applications, school, class) %>%
+    group_by(id,
+             name,
+             status,
+             color_name,
+             n_applications,
+             school,
+             class) %>%
     summarise()
 
 flog.info("Preparing data for student table - hs applications")
   student_table <- contact %>%
-    left_join(applications, by = c("id"="applicant_c")) %>%
-    inner_join(user, by=c("owner_id" = "id")) %>%
-    inner_join(account, by = c("school_c" = "id")) %>%
+    left_join(applications,
+              by = c("id"="applicant_c")) %>%
+    inner_join(user,
+               by=c("owner_id" = "id")) %>%
+    inner_join(account,
+               by = c("school_c" = "id")) %>%
     select(id,
            last_name = last_name.x,
            first_name = first_name.x,
@@ -129,25 +154,31 @@ transitions_by_student <- class_all %>%
 
 transitions_contacts<-transitions_by_student %>%
   inner_join(contacts_summary %>%
-               group_by(contact_c) %>%
-               summarize(contacts = sum(N)), by = c("id" = "contact_c"))
+             group_by(contact_c) %>%
+             summarize(contacts = sum(N)),
+             by = c("id" = "contact_c"))
 
 statuses <- contacts_summary %>%
-ungroup() %>%
-select(status_c) %>%
-filter(!is.na(status_c)) %>%
- unique()
+  ungroup() %>%
+  select(status_c) %>%
+  filter(!is.na(status_c)) %>%
+  unique()
 
- flog.info("Beginning Prophet Forecasting")
+flog.info("Beginning Prophet Forecasting")
 flog.info("Preparing data for prophet models")
-  dat_all <- contacts_details %>%
+
+dat_all <- contacts_details %>%
   filter(status_c %in% statuses[[1]]) %>%
   mutate(date_year = year(date_c),
   status = ifelse(date_c < ymd("2016-10-01") &
                   is.na(status_c), "Outreach", status_c )) %>%
   filter(!is.na(status)) %>%
-  group_by_("date_year", "date_c", "status",
-  "contact_c", "name.y", "kipp_hs_class_c")  %>%
+  group_by_("date_year",
+            "date_c",
+            "status",
+            "contact_c",
+            "name.y",
+            "kipp_hs_class_c")  %>%
   summarise() %>%
   ungroup() %>%
   group_by(date_year) %>%
@@ -156,7 +187,9 @@ flog.info("Preparing data for prophet models")
 ##cumulative####
 df_final_csum <- dat_all %>%
   filter(status %in% "Successful") %>%
-  distinct(contact_c, status, .keep_all=TRUE) %>%
+  distinct(contact_c,
+           status,
+           .keep_all=TRUE) %>%
   filter(!kipp_hs_class_c %in% hs_class(current_grade = 8))  %>%
   group_by(date_year, date_c) %>%
   summarise(N=n()) %>%
@@ -171,7 +204,8 @@ success <- dat_all %>%
   group_by(sy, date_c) %>%
   summarize(y=n()) %>%
   ungroup() %>%
-  select(ds = date_c, y)
+  select(ds = date_c,
+         y)
 
 flog.info("Compiling prophet data - outreach")
 outreach <- dat_all %>%
@@ -179,14 +213,16 @@ outreach <- dat_all %>%
   group_by(sy, date_c) %>%
   summarize(y=n()) %>%
   ungroup() %>%
-  select(ds = date_c, y)
+  select(ds = date_c,
+         y)
 
 flog.info("Compiling prophet data - both")
 both <- dat_all %>%
   group_by(sy, date_c) %>%
   summarize(y=n()) %>%
   ungroup() %>%
-  select(ds = date_c, y)
+  select(ds = date_c,
+         y)
 
 flog.info("Creating holidays dataframe")
   ##holidays####
@@ -233,7 +269,8 @@ flog.info("Creating holidays dataframe")
   lincoln <- data_frame(
     holiday = "lincoln's birthday",
     ds = as.Date(c("2010-02-15","2011-02-21", "2012-02-20", "2013-02-18",
-                   "2014-02-12", "2015-02-16", "2016-02-15", "2017-02-17", "2017-02-20"))
+                   "2014-02-12", "2015-02-16", "2016-02-15", "2017-02-17",
+                   "2017-02-20"))
   )
 
   teach_apprec <- data_frame(
@@ -276,28 +313,36 @@ flog.info("Creating holidays dataframe")
                         spring_break, memorial, school_start, school_end)
 
 flog.info("Compiling prophet data - successful unique")
-  prophet_model <- prophet::prophet(df_final_csum, holidays = holidays, mcmc.samples = 500)
-  future <- prophet::make_future_dataframe(prophet_model, periods = 6, freq = "weeks")
+  prophet_model <- prophet::prophet(df_final_csum, holidays = holidays,
+                                    mcmc.samples = 500)
+  future <- prophet::make_future_dataframe(prophet_model, periods = 6,
+                                           freq = "weeks")
   forecast <- predict(prophet_model, future)
   prophet_dat <- prophet:::df_for_plotting(prophet_model, forecast)
 
 flog.info("Compiling prophet data - successful")
-m_success <- prophet::prophet(success, holidays = holidays, mcmc.samples = 500)
-future_success <- prophet::make_future_dataframe(m_success, periods = 6, freq = "weeks")
+m_success <- prophet::prophet(success, holidays = holidays,
+                              mcmc.samples = 500)
+future_success <- prophet::make_future_dataframe(m_success, periods = 6,
+                                                 freq = "weeks")
 forecast_success <- predict(m_success, future_success)
 prophetdf_success <- prophet:::df_for_plotting(m_success, forecast_success)
 
 holiday_comps <- unique(m_success$holidays$holiday) %>% as.character()
 
 flog.info("Compiling prophet data - outreach")
-m_outreach <- prophet::prophet(outreach, holidays = holidays, mcmc.samples = 500)
-future_outreach <- prophet::make_future_dataframe(m_outreach, periods = 6, freq = "weeks")
+m_outreach <- prophet::prophet(outreach, holidays = holidays,
+                               mcmc.samples = 500)
+future_outreach <- prophet::make_future_dataframe(m_outreach, periods = 6,
+                                                  freq = "weeks")
 forecast_outreach <- predict(m_outreach, future_outreach)
 prophetdf_outreach <- prophet:::df_for_plotting(m_outreach, forecast_outreach)
 
 flog.info("Compiling prophet data - both")
-m_both <- prophet::prophet(both, holidays = holidays, mcmc.samples = 500)
-future_both <- prophet::make_future_dataframe(m_both, periods = 6, freq = "weeks")
+m_both <- prophet::prophet(both, holidays = holidays,
+                           mcmc.samples = 500)
+future_both <- prophet::make_future_dataframe(m_both, periods = 6,
+                                              freq = "weeks")
 forecast_both <- predict(m_both, future_both)
 prophetdf_both <- prophet:::df_for_plotting(m_both, forecast_both)
 
@@ -310,7 +355,9 @@ prophetdf_outreach <- prophetdf_outreach %>%
 prophetdf_both <- prophetdf_both %>%
   mutate(type = "both")
 
-prophet_all <- bind_rows(prophetdf_success, prophetdf_outreach, prophetdf_both)
+prophet_all <- bind_rows(prophetdf_success,
+                         prophetdf_outreach,
+                         prophetdf_both)
 
 flog.info("Creating target table")
 goal_tbl <- as.tbl(data.frame(goal_n = seq(0,740, by = 7.7),
