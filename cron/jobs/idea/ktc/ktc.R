@@ -7,32 +7,47 @@ library(stringr)
 library(tidyr)
 library(janitor)
 library(prophet)
+library(futile.logger)
 
 setwd("/jobs/idea/ktc/")
 source("lib/library.R")
 
+flog.threshold(TRACE)
+flog.appender(appender.tee("logs/ktc.log"))
 
-# Get KTC data's from silo2 ####
+flog.info("Getting KTC's data from silo2")
 
 #googlesheets::gs_auth(token="/config/gs_token.rds")
 #system("chmod 777 .httr-oauth")
 
-
+flog.info("Get Contact")
 contact <- get_alumni_db("contact", collect = TRUE)
+
+flog.info("Get Account")
 account <- get_alumni_db("account", collect = TRUE)
+
+flog.info("Get Enrollment")
 enrollment_c <- get_alumni_db("enrollment_c", collect = TRUE)
+
+flog.info("Get College Persistence")
 college_persistence <- get_alumni_db("college_persistence_c", collect = TRUE)
+
+flog.info("Get User")
 user <- get_alumni_db("user", collect = TRUE)
+
+flog.info("Get Application")
 applications <- get_alumni_db("application_c", collect = TRUE)
+
+flog.info("Get Contact Note")
 contact_note_c <- get_alumni_db("contact_note_c", collect = TRUE)
 
 
 
-# Prep enrollments_data data ###
+flog.info("Preparing enrollments data")
 class_all <- prep_class()
 
 
-# Prep contacts ####
+flog.info("Preparing contacts data")
 
 contacts_details <-
   contact_note_c %>%
@@ -48,7 +63,7 @@ contacts_summary <- contacts_details %>%
   group_by(kipp_hs_class_c, contact_c, status_c, name.y) %>%
   summarize(N = n())
 
-  # Prep hs applications by school ####
+flog.info("Compiling high school applications by school")
   hs_applications <- contact %>%
     left_join(applications, by = c("id"="applicant_c")) %>%
     inner_join(user, by=c("owner_id" = "id"))%>%
@@ -63,15 +78,16 @@ mutate(school = ifelse( grepl("Ascend", school),
                         "KIPP Ascend Middle School", school))
 
 ##student-level hs application status####
-##2021 counselors
-counselors_2021 <- c("Catrina Thomas", "China Hill", "Tiffany Harrell")
 
-#prep data for student-level bar plot
+middle_schools <- c("KIPP Ascend Middle School",
+                    "KIPP Bloom College Prep",
+                    "KIPP Create College Prep")
+
+flog.info("Preparing data for student-level bar plot - hs applications")
   students_data_bar <- hs_applications %>%
-  filter(grepl("KIPP", school),
-         class %in% 2021,
-         counselor %in% counselors_2021) %>%
-    group_by(id, last_name, first_name, status, counselor, school, class) %>%
+  filter(school %in% middle_schools,
+         class %in% hs_class(current_grade = 8)) %>%
+    group_by(id, last_name, first_name, status, school, class) %>%
     summarize(n_applications = n()) %>%
     mutate(name = sprintf("%s %s", first_name, last_name)) %>%
     ungroup %>%
@@ -81,12 +97,12 @@ counselors_2021 <- c("Catrina Thomas", "China Hill", "Tiffany Harrell")
     no_status = ifelse(x_na == 1 & submitted == 0, 0, x_na),
     color_name = ifelse(submitted == 0, "red", "black")) %>% #setting name color
     gather(key=status, value = n_applications,
-    -c(id, last_name, first_name, counselor, name, color_name, x_na, school, class)) %>% #gather status
+    -c(id, last_name, first_name, name, color_name, x_na, school, class)) %>% #gather status
     mutate(n_applications = ifelse(is.na(n_applications), 0, n_applications)) %>%
     group_by(id, name, status, color_name, n_applications, school, class) %>%
     summarise()
 
-#prep data for student table
+flog.info("Preparing data for student table - hs applications")
   student_table <- contact %>%
     left_join(applications, by = c("id"="applicant_c")) %>%
     inner_join(user, by=c("owner_id" = "id")) %>%
@@ -102,7 +118,7 @@ counselors_2021 <- c("Catrina Thomas", "China Hill", "Tiffany Harrell")
            decision = application_status_c,
            matriculation = matriculation_decision_c)
 
-# Transitions ####
+flog.info("Preparing transitions data")
 transitions_by_student <- class_all %>%
   filter(type != "KIPP School") %>%
   group_by(id) %>%
@@ -122,7 +138,8 @@ select(status_c) %>%
 filter(!is.na(status_c)) %>%
  unique()
 
- ##prophet ####
+ flog.info("Beginning Prophet Forecasting")
+flog.info("Preparing data for prophet models")
   dat_all <- contacts_details %>%
   filter(status_c %in% statuses[[1]]) %>%
   mutate(date_year = year(date_c),
@@ -140,7 +157,7 @@ filter(!is.na(status_c)) %>%
 df_final_csum <- dat_all %>%
   filter(status %in% "Successful") %>%
   distinct(contact_c, status, .keep_all=TRUE) %>%
-  filter(!kipp_hs_class_c %in% 2021)  %>%
+  filter(!kipp_hs_class_c %in% hs_class(current_grade = 8))  %>%
   group_by(date_year, date_c) %>%
   summarise(N=n()) %>%
   mutate(y = cumsum(N)) %>%
@@ -148,7 +165,7 @@ df_final_csum <- dat_all %>%
   select("ds" = date_c,
          y)
 
-  #historical daily totals####
+flog.info("Compiling prophet data - successful")
 success <- dat_all %>%
   filter(status == "Successful") %>%
   group_by(sy, date_c) %>%
@@ -156,6 +173,7 @@ success <- dat_all %>%
   ungroup() %>%
   select(ds = date_c, y)
 
+flog.info("Compiling prophet data - outreach")
 outreach <- dat_all %>%
   filter(status == "Outreach") %>%
   group_by(sy, date_c) %>%
@@ -163,14 +181,14 @@ outreach <- dat_all %>%
   ungroup() %>%
   select(ds = date_c, y)
 
-
+flog.info("Compiling prophet data - both")
 both <- dat_all %>%
   group_by(sy, date_c) %>%
   summarize(y=n()) %>%
   ungroup() %>%
   select(ds = date_c, y)
 
-
+flog.info("Creating holidays dataframe")
   ##holidays####
   labor_day <- data_frame(
     holiday = "labor day",
@@ -257,15 +275,13 @@ both <- dat_all %>%
                         winter_break, mlk, lincoln, teach_apprec, pulaski,
                         spring_break, memorial, school_start, school_end)
 
-##prophet model_unique####
-
+flog.info("Compiling prophet data - successful unique")
   prophet_model <- prophet::prophet(df_final_csum, holidays = holidays, mcmc.samples = 500)
   future <- prophet::make_future_dataframe(prophet_model, periods = 6, freq = "weeks")
   forecast <- predict(prophet_model, future)
   prophet_dat <- prophet:::df_for_plotting(prophet_model, forecast)
 
-## prophet models - success, outreach, both####
-
+flog.info("Compiling prophet data - successful")
 m_success <- prophet::prophet(success, holidays = holidays, mcmc.samples = 500)
 future_success <- prophet::make_future_dataframe(m_success, periods = 6, freq = "weeks")
 forecast_success <- predict(m_success, future_success)
@@ -273,11 +289,13 @@ prophetdf_success <- prophet:::df_for_plotting(m_success, forecast_success)
 
 holiday_comps <- unique(m_success$holidays$holiday) %>% as.character()
 
+flog.info("Compiling prophet data - outreach")
 m_outreach <- prophet::prophet(outreach, holidays = holidays, mcmc.samples = 500)
 future_outreach <- prophet::make_future_dataframe(m_outreach, periods = 6, freq = "weeks")
 forecast_outreach <- predict(m_outreach, future_outreach)
 prophetdf_outreach <- prophet:::df_for_plotting(m_outreach, forecast_outreach)
 
+flog.info("Compiling prophet data - both")
 m_both <- prophet::prophet(both, holidays = holidays, mcmc.samples = 500)
 future_both <- prophet::make_future_dataframe(m_both, periods = 6, freq = "weeks")
 forecast_both <- predict(m_both, future_both)
@@ -294,20 +312,22 @@ prophetdf_both <- prophetdf_both %>%
 
 prophet_all <- bind_rows(prophetdf_success, prophetdf_outreach, prophetdf_both)
 
-##quad model and goal table ####
-
+flog.info("Creating target table")
 goal_tbl <- as.tbl(data.frame(goal_n = seq(0,740, by = 7.7),
                               ds = as.POSIXct(ymd("2017-01-01") + days(0:96))))
 
 success_csum <- df_final_csum %>%
   filter(ds >= ymd("2017-01-01"))
 
+flog.info("Fitting quadratic model")
 q_mod <- lm(y ~ I(as.numeric(ds)) + I(as.numeric(ds)^2), data = success_csum)
 
+flog.info("Quadratic model predictions")
 goal_tbl$qmod <- predict(q_mod, goal_tbl[,"ds"])
 
 
-# Save data ####
+
+flog.info("Saving Data")
 save(
      class_all,
      contacts_details,

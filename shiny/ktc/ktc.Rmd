@@ -459,7 +459,8 @@ output$proj_plot <-renderPlot({
                        values = c("Total to date" = "black",
                                   "Goal" = "#451077FF",
                                   "Projection (historical)" = "#FEC98DFF",
-                                  "Projection (2017)" = "#238A8DFF" ),
+                                  "Projection (2017)" = "#238A8DFF",
+                                  "Projection (week 6)" = "steelblue1" ),
                        guide = "legend") +
     theme_bw() +
     theme(legend.position = "top") +
@@ -612,7 +613,8 @@ output$holiday <- renderPlot({
   df_all <- bind_rows(df_s, df_o, df_b)
 
   holiday <-  df_all %>%
-    filter(type %in% input$prophet_plot) %>%
+    filter(type %in% input$prophet_plot,
+      ds < today() + weeks(1)) %>%
     ggplot(aes(x = ds, y = holidays, color = type)) +
     geom_line() +
     geom_ribbon(aes(ymin = holidays_lower,
@@ -627,8 +629,7 @@ output$holiday <- renderPlot({
                                  ) +
       theme_bw() +
       theme(legend.position = "none") +
-      xlab("") +
-      ylim(c(-20,10))
+      xlab("")
 
 
   holiday
@@ -822,8 +823,10 @@ name_class
 ```
 
 ```{r}
-
-p(strong(h4(textOutput("text"))))
+fillCol(flex = c(.15,.85),
+p(strong(h4(textOutput("text")))),
+tableOutput("students_table")
+)
 
 output$text <- renderText({
   if(is.null(input$student_click)) {
@@ -833,7 +836,7 @@ output$text <- renderText({
 }
 })
 
- renderTable({
+ output$students_table <- renderTable({
    req(input$student_click)
 
 plot_student_id <- name_header()$student_id
@@ -866,18 +869,21 @@ Schools
 
 ### School View
 ```{r}
+fillCol(flex = c(.07,.93),
 #test2
-p(strong(h4(textOutput("text2"))))
+p(strong(h4(textOutput("text2")))),
+
+plotOutput("students_barplot",
+            click = clickOpts(id = "student_click")
+          )
+)
 output$text2 <- renderText({
   if(is.null(input$plot_click)) {
  "Click on a school plot to see high school application submission status by student."
 } else {
- ""
+ input$plot_click[[3]]
 }
 })
-plotOutput("students_barplot",
-            click = clickOpts(id = "student_click")
-          )
 
 output$students_barplot <- renderPlot({
   req(input$plot_click)
