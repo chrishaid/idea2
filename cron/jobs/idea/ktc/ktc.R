@@ -315,8 +315,8 @@ flog.info("Creating holidays dataframe")
 flog.info("Compiling prophet data - successful unique")
   prophet_model <- prophet::prophet(df_final_csum, holidays = holidays,
                                     mcmc.samples = 500)
-  future <- prophet::make_future_dataframe(prophet_model, periods = 6,
-                                           freq = "weeks")
+  future <- prophet::make_future_dataframe(prophet_model, periods = 90,
+                                           freq = "days")
   forecast <- predict(prophet_model, future)
   prophet_dat <- prophet:::df_for_plotting(prophet_model, forecast)
 
