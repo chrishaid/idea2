@@ -41,6 +41,8 @@ RUN R -e "install.packages('curl')"
 
 RUN R -e "install.packages('httr')"
 
+RUN R -e "devtools::install_github('kippchicago/teachboostr')"
+
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
                    clang
@@ -49,6 +51,8 @@ RUN mkdir -p $HOME/.R/ \
     && echo "\nCXX=clang++ -ftemplate-depth-256\n" >> $HOME/.R/Makevars \
     && echo "CC=clang\n" >> $HOME/.R/Makevars
 
+RUN  ln -s /usr/lib/x86_64-linux-gnu/libgfortran.so.3 /usr/lib/libgfortran.so
+   
 # Install rstan
 RUN install2.r --error \
     inline \
@@ -56,6 +60,7 @@ RUN install2.r --error \
     StanHeaders \
     rstan \
     KernSmooth
+
 
 RUN mkdir -p /home/rstudio/.R/ \
     && echo "\nCXX=clang++ -ftemplate-depth-256\n" >> /home/rstudio/.R/Makevars \
