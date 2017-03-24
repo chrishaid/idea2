@@ -28,6 +28,14 @@ load("/data/suspensions.Rdata")
 
 load("/data/dl_suspensions.Rda")
 
+load("/data/tb_observations.Rda")
+#Load observation data
+# obsData <- reactiveFileReader(8.64e+7,
+#   session = NULL,
+#   filePath = "/data/tb_observations.Rda",
+#   load,
+#   envir = .GlobalEnv)
+
 schools <- unique(ada_weekly_school$schoolabbreviation)
 
 grades <- list(KAP = 0:5,
@@ -774,4 +782,36 @@ fillCol(flex = c(.25,.75),
 
         DT::dataTableOutput("sups_dt")            
     )    
+```
+
+
+Observations
+=======================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+selectInput("obsv_schools",
+         "Select School",
+         choices = unique(teacher_last_two_weeks$school_abbrev),
+         selected = "KAP",
+         multiple = TRUE)    
+```
+
+
+Column
+-----------------------------------------------------------------------
+
+### Observations over last two weeks
+
+```{r}
+DT::renderDataTable({
+  validate(
+    need(input$obsv_schools != "", "Select at least one school at left.")
+  )
+
+  teacher_last_two_weeks %>%
+  filter(school_abbrev == input$obsv_schools)
+
+})
+
 ```
