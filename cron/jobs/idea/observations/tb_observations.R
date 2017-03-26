@@ -49,6 +49,12 @@ admins <- roles %>% filter(value %in% c("3", "2"), school_year==2016) %>%
   inner_join(users, by = c("user_id"="id")) %>%
   select(user_id, group_id) %>% unique()
 
+flog.info("ID teachers from roles")
+teachers <- users %>%
+  anti_join(admins, by = c("id" = "user_id")) %>%
+  select(user_id = id) %>%
+  distinct()
+
 
 flog.info("Get templates")
 templates <- get_teachboost("templates", collect = TRUE) %>% 
@@ -109,19 +115,21 @@ teacher_ytd_tb <- teacher_monthly_tb %>%
 
 
 flog.info("Calculate last two weeks observations")
-todays_date <- today()
+end_date <- floor_date(today(), unit = "week")
+start_date <- end_date - weeks(2)
 
-last_two_weeks <-  floor_date(todays_date - weeks(1)) %--% todays_date
+last_two_weeks <-  start_date %--% end_date
 
 teacher_daily_tb <- teacher_daily_tb %>%
   dplyr::mutate(last_2_weeks = ymd(date) %within% last_two_weeks)
 
 teacher_last_two_weeks <- 
   roles %>%
-  filter(group_id!=26537, school_year==2016, value==0) %>%
+  filter(group_id!=26537, school_year==2016, value==0) %>% 
   select(user_id, group_id) %>%
   left_join(users %>%
-              select(user_id = id, full_name, last_name = lname, first_name = fname), 
+              select(user_id = id, full_name, last_name = lname, first_name = fname) %>%
+              inner_join(teachers, by = "user_id"), 
             by ="user_id") %>%
   inner_join(schools %>% 
                filter(name != "KIPP Chicagao") %>%
@@ -147,6 +155,8 @@ save(teacher_last_two_weeks,
      daily_tb,
      monthly_tb,
      forms_complete,
+     admins,
+     last_two_weeks,
      file = "/data/tb_observations.Rda")
 
 flog.info("Complete!")
