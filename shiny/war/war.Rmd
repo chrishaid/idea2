@@ -11,12 +11,13 @@ runtime: shiny
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
-#library(Cairo)
+library(Cairo)
 library(lubridate)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(formattable)
+library(forcats)
 
 options(shiny.usecairo = TRUE)
 
@@ -27,6 +28,14 @@ load("/data/transfers.Rda")
 load("/data/suspensions.Rdata")
 
 load("/data/dl_suspensions.Rda")
+
+load("/data/tb_observations.Rda")
+#Load observation data
+# obsData <- reactiveFileReader(8.64e+7,
+#   session = NULL,
+#   filePath = "/data/tb_observations.Rda",
+#   load,
+#   envir = .GlobalEnv)
 
 schools <- unique(ada_weekly_school$schoolabbreviation)
 
@@ -774,4 +783,127 @@ fillCol(flex = c(.25,.75),
 
         DT::dataTableOutput("sups_dt")            
     )    
+```
+
+
+Teachers {data-navmenu="Observations"}
+=======================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+selectInput("obsv_schools",
+         "Select School",
+         choices = unique(teacher_last_two_weeks$school_abbrev),
+         selected = "KAP",
+         multiple = FALSE)    
+```
+
+
+Column {data-width=1000}
+-----------------------------------------------------------------------
+
+### YTD Observations of Teachers
+
+```{r}
+output$two_day_dt <- renderTable({
+  validate(
+    need(input$obsv_schools != "", "Select at least one school at left.")
+  )
+
+  teacher_last_two_weeks %>%
+    filter(school_abbrev == input$obsv_schools) %>%
+    mutate(two_weeks = n>=2) %>%
+    select(Teacher = full_name,
+           School = school_abbrev,
+           "Obsv last two weeks" = n) #%>%
+
+
+    #  DT::datatable()  %>%
+    #  DT::formatStyle(1:3, valueColumns = 3,
+    #    color = DT::styleInterval(
+    #                         c(0,1),
+    #                         c('red', '#8D8685', '#439539')
+    #                     )
+    #    )
+
+
+    })
+
+
+
+output$obs_teachers_plot <- renderPlot({
+
+  max_month <- monthly_tb %>%
+    ungroup() %>%
+    summarize(max_month = max(as.integer(month)))
+
+ obs_target <- max_month$max_month * 2
+
+
+  teacher_ytd_tb %>%
+    dplyr::filter(!is.na(topic_name)) %>%
+    dplyr::filter(school_abbrev == input$obsv_schools) %>%
+    dplyr::anti_join(admins %>% dplyr::select(user_id),
+              by=c("topic_ids" = "user_id")) %>%
+     dplyr::ungroup() %>%
+     dplyr::arrange(n) %>%
+     dplyr::mutate(name = forcats::fct_inorder(topic_name),
+                   target_met = n >= obs_target) %>%
+    ggplot(aes(x=name, y=n)) +
+      geom_col(aes(fill = target_met),
+               width = .75) +
+      coord_flip() +
+      viridis::scale_fill_viridis(discrete = TRUE,
+                                  direction = -1) +
+      theme_linedraw() +
+      labs(y = "",
+           x = "Observations to date",
+           fill = sprintf("Target\n(%s obs = 2 x %s months)\nmet?",
+                          obs_target,
+                          max_month$max_month))
+  })  
+
+  plotOutput("obs_teachers_plot")
+
+```
+
+Column
+-----------------------------------------------------------------------
+
+### Observations over last two weeks (`r format(int_start(last_two_weeks), '%b %d')` to `r format(int_end(last_two_weeks), '%b %d')`)
+
+```{r}
+tableOutput("two_day_dt")
+```
+
+Admins {data-navmenu="Observations"}
+=======================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+selectInput("obsv_schools_admins",
+         "Select School",
+         choices = unique(teacher_last_two_weeks$school_abbrev),
+         selected = "KAP",
+         multiple = FALSE)    
+```
+
+Column
+-----------------------------------------------------------------------
+
+### Observations by admins by month
+
+```{r}
+output$obs_admins_plot <- renderPlot({
+  monthly_tb %>%
+  inner_join(admins %>% select(user_id), by=c("author_ids" = "user_id")) %>%
+  filter(school_abbrev == input$obsv_schools_admins) %>%
+  ggplot(aes(x=month, y=n)) +
+    geom_col() +
+    facet_wrap(~auth_name)  +
+    theme_linedraw() +
+    labs(x = "Month", y = "Observations conducted")
+  })
+
+plotOutput("obs_admins_plot")
 ```
