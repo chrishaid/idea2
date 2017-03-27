@@ -1,3 +1,5 @@
+options(java.parameters = "- Xmx1024m")
+
 require(dplyr)
 require(RSQLServer)
 require(tidyr)
@@ -51,7 +53,7 @@ grades_1<-pg_fg_cc %>%
                      HOME_ROOM
               ),
             by = "STUDENTID") %>%
-  collect()
+  collect(n = Inf)
 
 grades <- grades_1 %>%
   select( STUDENTID,
@@ -101,7 +103,7 @@ assignments <- assignment %>%
                      TEACHER,
                      TERMID),
             by = c("SECTIONSDCID" = "DCID")) %>%
-  collect()
+  collect(n = Inf)
 
 
 names(assignments) <- tolower(names(assignments))
