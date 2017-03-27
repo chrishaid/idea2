@@ -17,8 +17,7 @@ flog.appender(appender.tee("logs/ktc.log"))
 
 flog.info("Getting KTC's data from silo2")
 
-#googlesheets::gs_auth(token="/config/gs_token.rds")
-#system("chmod 777 .httr-oauth")
+bigrquery::set_service_token("/config/bq/kipp-chicago-silo-2-aa786970aefd.json")
 
 flog.info("Get Contact")
 contact <- get_alumni_db("contact", collect = TRUE)
