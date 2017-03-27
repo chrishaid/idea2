@@ -832,6 +832,14 @@ output$two_day_dt <- renderTable({
 
 
 output$obs_teachers_plot <- renderPlot({
+
+  max_month <- monthly_tb %>%
+    ungroup() %>%
+    summarize(max_month = max(as.integer(month)))
+
+ obs_target <- max_month$max_month * 2
+
+
   teacher_ytd_tb %>%
     dplyr::filter(!is.na(topic_name)) %>%
     dplyr::filter(school_abbrev == input$obsv_schools) %>%
@@ -839,11 +847,20 @@ output$obs_teachers_plot <- renderPlot({
               by=c("topic_ids" = "user_id")) %>%
      dplyr::ungroup() %>%
      dplyr::arrange(n) %>%
-     dplyr::mutate(name = forcats::fct_inorder(topic_name)) %>%
+     dplyr::mutate(name = forcats::fct_inorder(topic_name),
+                   target_met = n >= obs_target) %>%
     ggplot(aes(x=name, y=n)) +
-      geom_col(width = .75) +
+      geom_col(aes(fill = target_met),
+               width = .75) +
       coord_flip() +
-      theme_linedraw()
+      viridis::scale_fill_viridis(discrete = TRUE,
+                                  direction = -1) +
+      theme_linedraw() +
+      labs(y = "",
+           x = "Observations to date",
+           fill = sprintf("Target\n(%s obs = 2 x %s months)\nmet?",
+                          obs_target,
+                          max_month$max_month))
   })  
 
   plotOutput("obs_teachers_plot")
@@ -884,7 +901,8 @@ output$obs_admins_plot <- renderPlot({
   ggplot(aes(x=month, y=n)) +
     geom_col() +
     facet_wrap(~auth_name)  +
-    theme_linedraw()
+    theme_linedraw() +
+    labs(x = "Month", y = "Observations conducted")
   })
 
 plotOutput("obs_admins_plot")
