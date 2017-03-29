@@ -4,7 +4,7 @@ output:
   flexdashboard::flex_dashboard:
     orientation: rows
     theme: lumen
-    vertical_layout: scroll
+    vertical_layout: fill
 runtime: shiny
 ---
 
@@ -19,6 +19,11 @@ library(timevis)
 library(Cairo)
 library(sunburstR)
 library(stringr)
+library(purrr)
+library(tidyr)
+library(janitor)
+library(forcats)
+
 
 enableBookmarking(store = "url")
 # Load assignments data
@@ -32,16 +37,25 @@ classes <- c(2011:2020)
 
 counselors <- unique(contacts_summary$name.y)
 
-statuses <- unique(contacts_summary$status_c)
+statuses <- unique(contacts_summary$status_c) %>% discard(is.na)
+
+counselors_2021 <- c("Catrina Thomas", "China Hill", "Tiffany Harrell")
 
  todays_date <- today()
  days_elapsed_7 <- todays_date - days(7)
  days_elapsed_30 <- todays_date - days(30)
  days_elapsed_90 <- todays_date - days(90)
 
- contact_goal_7 <- 15
- contact_goal_30 <- as.integer(contact_goal_7 / 7 * 30)
- contact_goal_90 <- contact_goal_30 * 3
+ start <- ymd("2017-01-01")
+ daily <- 739 / (96 * 6)
+ contact_goal_7 <- daily * 7 #15
+ contact_goal_30 <- daily * 30 #as.integer(contact_goal_7 / 7 * 30)
+ contact_goal <- 739 / 6
+
+ day <- wday(today(), label=TRUE)
+ week <- today() %m-% days(1:7)
+ last_sunday <- which(wday(week, label=TRUE) %in% "Sun")
+ set_date <- ifelse(day == "Sun", today(), week[last_sunday])
 
  noble_schools <-
   c("Rowe-Clark Math and Science Academy",
@@ -73,7 +87,7 @@ class_all <- class_all %>%
 
 ```
 
-Contacts
+Unique and Total Contacts{data-navmenu="Contacts"}
 ======================================================================
 Inputs {.sidebar}
 -----------------------------------------------------------------------
@@ -89,7 +103,7 @@ selectInput("counselor",
             "Counselors",
             choices = counselors,
             multiple = TRUE,
-            selected = c("Catrina Clayton",
+            selected = c("Catrina Thomas",
                          "China Hill",
                          "Deja Manuel",
                          "Jamie Hawley",
@@ -122,24 +136,27 @@ contacts_filtered <- reactive({
   filtered <- contacts_details %>%
     filter(kipp_hs_class_c %in% input$class,
            name.y %in% input$counselor,
-           status_c %in% input$status)
+           status_c %in% "Successful")
 
   out<-list()
 
 
   out$last_7 <- nrow(filtered %>%
-                        filter(created_date.x >= days_elapsed_7
-                        )
+                        filter(date_c >= as_date(set_date)) %>%
+                         select(contact_c) %>%
+                         unique()
                 )
 
   out$last_30 <- nrow(filtered %>%
-                        filter(created_date.x >= days_elapsed_30
-                        )
+                        filter(date_c >= days_elapsed_30) %>%
+                         select(contact_c) %>%
+                         unique()
                 )
 
-  out$last_90 <- nrow(filtered %>%
-                        filter(created_date.x >= days_elapsed_90
-                        )
+  out$begin <- nrow(filtered %>%
+                        filter(date_c >= start) %>%
+                         select(contact_c) %>%
+                         unique()
                 )
 
 
@@ -157,11 +174,11 @@ contacts_filtered <- reactive({
 
 ```{r}
 renderValueBox({
-  valueBox(value = contacts_filtered()$last_90,
-           caption = sprintf("Contacts last 90 days (goal: %s)",
-                             contact_goal_90*length(input$counselor)),
+  valueBox(value = contacts_filtered()$begin,
+           caption = sprintf("Contacts since Jan 1st (goal: %s)",
+                             floor(contact_goal*length(input$counselor))),
     icon = "fa-calendar-check-o",
-    color = ifelse(contacts_filtered()$last_90 < contact_goal_90*length(input$counselor), "warning", "primary"))
+    color = ifelse(contacts_filtered()$begin < contact_goal*length(input$counselor), "warning", "primary"))
   })
 ```
 
@@ -171,9 +188,9 @@ renderValueBox({
 renderValueBox({
   valueBox(value = contacts_filtered()$last_30,
            caption = sprintf("Contacts last 30 days (goal: %s)",
-                             contact_goal_30*length(input$counselor)),
+                             floor(contact_goal_30*length(input$counselor))),
     icon = "fa-calendar-check-o",
-    color = ifelse(contacts_filtered()$last_30 < contact_goal_30*length(input$counselor), "warning", "primary"))
+    color = ifelse(contacts_filtered()$last_30 < floor(contact_goal_30*length(input$counselor)), "warning", "primary"))
   })
 ```
 
@@ -183,10 +200,10 @@ renderValueBox({
 ```{r}
 renderValueBox({
   valueBox(value = contacts_filtered()$last_7,
-           caption = sprintf("Contacts last 7 days (goal: %s)",
-                             contact_goal_7*length(input$counselor)),
+           caption = sprintf("Contacts since Sunday (goal: %s)",
+                             floor(contact_goal_7*length(input$counselor))),
     icon = "fa-calendar-check-o",
-    color = ifelse(contacts_filtered()$last_7 < contact_goal_7*length(input$counselor), "warning", "primary"))
+    color = ifelse(contacts_filtered()$last_7 < floor(contact_goal_7*length(input$counselor)), "warning", "primary"))
   })
 ```
 
@@ -195,7 +212,122 @@ renderValueBox({
 Row {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
-### Summary {.no-padding}
+###Unique {.no-padding}
+
+
+```{r}
+plotOutput("unicontacts_flow",
+            brush = brushOpts(id = "plot_brush", direction = "x")
+          )
+
+
+output$unicontacts_flow <-renderPlot({
+
+if(!grepl("~", input$facet_by)) { # not class and counselor
+
+  if(input$facet_by == "name.y") { #if counselor
+    filter_cond <- ~ name.y %in% input$counselor
+
+  } else { # if class
+    filter_cond <- ~ kipp_hs_class_c %in% input$class
+
+  }
+
+  # Class or counselor plot
+  p <- contacts_details %>%
+  filter(kipp_hs_class_c %in% classes,
+         status_c %in% statuses) %>%
+  group_by_("date_c", "status_c", "contact_c", input$facet_by) %>%
+  summarise() %>%
+  filter_(filter_cond,
+          ~date_c >= start) %>%
+  ungroup()  
+
+  first_success <- p %>%
+    filter(!duplicated(contact_c),
+           status_c %in% "Successful")
+
+  first_outreach <- p %>%
+    filter(!duplicated(contact_c),
+           status_c %in% "Outreach")
+
+  outreach_success <- p %>%
+    distinct(contact_c, status_c, .keep_all=TRUE) %>%
+    filter(status_c %in% "Successful") %>%
+    semi_join(first_outreach, by="contact_c")
+
+  u_table <- bind_rows(first_success, first_outreach, outreach_success) %>%
+    group_by_("date_c", input$facet_by, "status_c") %>%
+    summarise(N=n()) %>%
+    ggplot(aes(x = date_c, y = N)) +
+    geom_bar(color = "white",
+           stat ="identity",
+           aes(alpha = status_c),
+           fill = '#440154FF') +
+    scale_alpha_discrete(range = c(1/5, 1),
+                       guide = guide_legend(title= NULL)) +
+    facet_wrap(input$facet_by) +
+    scale_x_datetime(date_labels = "%b %d",
+                   date_breaks = "1 week") +
+    theme_bw() +
+    theme(legend.position = "bottom",
+        axis.text.x = element_text(angle=45, hjust = 1)) +
+    labs(y = "Number of contacts",
+       x = "Date", fill=NULL)
+  } else { # both class and counselor
+
+     # Class and counselor plot
+
+    p <- contacts_details %>%
+      filter(status_c %in% statuses) %>%
+      group_by_("date_c", "status_c", "contact_c", "name.y", "kipp_hs_class_c")  %>%
+      summarise() %>%
+      filter(name.y %in% input$counselor,
+             kipp_hs_class_c %in% input$class,
+             date_c >= start) %>%
+      ungroup()
+
+    first_success <- p %>%
+      filter(!duplicated(contact_c),
+             status_c %in% "Successful")
+
+    first_outreach <- p %>%
+      filter(!duplicated(contact_c),
+             status_c %in% "Outreach")
+
+    outreach_success <- p %>%
+      distinct(contact_c, status_c, .keep_all=TRUE) %>%
+      filter(status_c %in% "Successful") %>%
+     semi_join(first_outreach, by="contact_c")
+
+    u_table <- bind_rows(first_success, first_outreach, outreach_success) %>%
+      group_by(date_c, name.y, kipp_hs_class_c, status_c) %>%
+      summarise(N=n()) %>%
+      ggplot(aes(x = date_c, y = N)) +
+      geom_bar(color = "white",
+               stat ="identity",
+               aes(alpha = status_c),
+               fill = '#440154FF') +
+      scale_alpha_discrete(range = c(1/5, 1),
+                       guide = guide_legend(title= NULL)) +
+      facet_grid(name.y ~ kipp_hs_class_c) +
+      scale_x_datetime(date_labels = "%b %d",
+                   date_breaks = "1 week") +
+      theme_bw() +
+      theme(legend.position = "bottom",
+        axis.text.x = element_text(angle=45, hjust = 1)) +
+      labs(y = "Number of contacts",
+       x = "Date", fill=NULL)
+  }
+
+
+  u_table
+
+ })
+
+```
+
+### Total {.no-padding}
 
 ```{r}
 
@@ -216,7 +348,8 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
 
   # Class or counselor plot
   p <- contacts_details %>%
-    filter(status_c %in% input$status) %>%
+    filter(status_c %in% input$status,
+           kipp_hs_class_c %in% classes) %>% ##added since we were capturing 2021 data ) %>%
     group_by_("date_c", input$facet_by) %>%
     summarize(N = n()) %>%
     filter_(filter_cond,
@@ -277,8 +410,490 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
 
 ```
 
+Projection {data-navmenu="Contacts"}
+========================================================
 
-Classes
+Inputs {.sidebar}
+--------------------------------------------------------
+```{r}
+radioButtons("line_proj", "Show",
+             choices = c("Goal" = "goal",
+                         "Projection (2017 Data)" = "2017",
+                         "Projection (Historical Data)" = "prophet",
+                         "All" = "all"),
+             selected = "goal",
+             inline = FALSE)
+```
+
+Row
+----------------------------------------------------------
+### Projection
+
+```{r}
+plotOutput("proj_plot",
+            brush = brushOpts(id = "proj_brush", direction = "x")
+          )
+```
+
+```{r}
+
+output$proj_plot <-renderPlot({
+  plotdf <- prophet_dat %>%
+    filter(ds >= ymd("2017-01-01"),
+           ds < ymd("2017-04-08")) %>%
+    mutate(ds = as.POSIXct(ds))
+
+  p_graph <-
+     ggplot(data = success_csum, aes(x = ds, y = y)) +
+     geom_step(aes(color = "Total to date"),
+               stat = "identity",
+               position = "identity") +
+    geom_line(data = goal_tbl, aes(x=ds, y= goal_n,
+                                   color = "Goal"),
+                                   stat = "identity") +
+    geom_vline(xintercept = as.numeric(as.POSIXct("2017-04-07")), color = "#C83E73FF") +
+    scale_x_datetime(date_labels = "%b %d",
+                     date_breaks = "1 week",
+                     limits = as.POSIXct(c("2017-01-01", "2017-04-07"))) +
+    scale_color_manual(name = NULL,
+                       values = c("Total to date" = "black",
+                                  "Goal" = "#451077FF",
+                                  "Projection (historical)" = "#FEC98DFF",
+                                  "Projection (2017)" = "#238A8DFF",
+                                  "Projection (week 6)" = "steelblue1" ),
+                       guide = "legend") +
+    theme_bw() +
+    theme(legend.position = "top") +
+    labs(y = "Number of successful contacts",
+         x = "Date")
+
+  if(input$line_proj %in% "2017"){
+
+  p_graph <- p_graph +
+    geom_line(data = goal_tbl, aes(x=ds, y= qmod,
+                                   color = "Projection (2017)"),
+              stat = "identity")
+  }
+
+  if(input$line_proj %in% "prophet"){
+  p_graph <- p_graph +
+    geom_line(data = plotdf, aes(x = ds, y = yhat,
+                                color = "Projection (historical)")) +
+    geom_ribbon(data = plotdf, aes(x = ds, ymin = yhat_lower,
+                                   ymax = yhat_upper),
+                alpha = 0.2,
+                fill = "#FEC98DFF"
+                            )
+    }
+  if(input$line_proj %in% "all"){
+  p_graph <- p_graph +
+    geom_line(data = goal_tbl, aes(x=ds, y= qmod,
+                                   color = "Projection (2017)"),
+              stat = "identity"
+                          ) +
+    geom_line(data = plotdf, aes(x = ds, y = yhat,
+                                 color = "Projection (historical)")) +
+    geom_ribbon(data = plotdf, aes(x = ds, ymin = yhat_lower,
+                                   ymax = yhat_upper),
+              alpha = 0.2,
+              fill = "#FEC98DFF"
+                            )
+
+  } else {
+   p_graph <- p_graph
+  }
+
+  p_graph
+  })
+
+```
+
+Historical {data-navmenu="Contacts"}
+========================================================
+
+Inputs {.sidebar}
+--------------------------------------------------------
+```{r}
+checkboxGroupInput("prophet_plot", "Show",
+     choices = c("Successful" = "successful",
+                 "Outreach" = "outreach",
+                 "Both" = "both"),
+     selected = "successful",
+     inline = FALSE)
+
+```
+
+Row
+---------------------------------------------------------
+### Historical
+
+```{r}
+colors <- c("#440154FF",  "#FEC98DFF", "#238A8DFF")
+names(colors) <- c("successful", "outreach", "both")
+fillCol(flex= c(0.22, 0.22, 0.22, 0.32),
+width = "100%", height = "100%",
+        plotOutput("trend"),
+        plotOutput("holiday"),
+        plotOutput("weekly"),
+        plotOutput("yearly")
+)
+output$trend <- renderPlot({
+
+trend <-
+  prophet_all %>%
+  filter(type %in% input$prophet_plot) %>%
+  ggplot( aes(x = ds, y = trend, color = type )) +
+  geom_line() +
+  geom_ribbon(ggplot2::aes(ymin = trend_lower,
+                           ymax = trend_upper,
+                           fill = type),
+              alpha = 0.2,
+              na.rm = TRUE,
+              color = NA) +
+   scale_fill_manual(values = colors
+                                ) +
+   scale_color_manual(values = colors
+                                 ) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  xlab("")
+
+trend
+})
+
+
+output$holiday <- renderPlot({
+  df_s <- data.frame(ds = prophetdf_success$ds,
+                     holidays = rowSums(prophetdf_success[,
+                                                          holiday_comps,
+                                                          drop = FALSE]),
+                     holidays_lower = rowSums(prophetdf_success[,
+                                                                paste0(
+                                                                  holiday_comps,
+                                                                  "_lower"),
+                                                          drop = FALSE]),
+                     holidays_upper = rowSums(prophetdf_success[,
+                                                                paste0(
+                                                                  holiday_comps,
+                                                                  "_upper"),
+                                                          drop = FALSE]),
+                     type = "successful")
+
+  df_o <- data.frame(ds = prophetdf_outreach$ds,
+                     holidays = rowSums(prophetdf_outreach[,
+                                                           holiday_comps,
+                                                           drop =FALSE]),
+                     holidays_lower = rowSums(prophetdf_outreach[,
+                                                                 paste0(
+                                                                   holiday_comps,
+                                                                   "_lower"),
+                                                              drop = FALSE]),
+                     holidays_upper = rowSums(prophetdf_outreach[,
+                                                                 paste0(
+                                                                   holiday_comps,
+                                                                   "_upper"),
+                                                              drop = FALSE]),
+                     type = "outreach")
+
+  df_b <- data.frame(ds = prophetdf_both$ds,
+                     holidays = rowSums(prophetdf_both[,
+                                                       holiday_comps,
+                                                       drop = FALSE]),
+                     holidays_lower = rowSums(prophetdf_both[,
+                                                             paste0(
+                                                               holiday_comps,
+                                                               "_lower"),
+                                                           drop = FALSE]),
+                     holidays_upper = rowSums(prophetdf_both[,
+                                                             paste0(
+                                                               holiday_comps,
+                                                               "_upper"),
+                                                               drop = FALSE]),
+                     type = "both")
+  df_all <- bind_rows(df_s, df_o, df_b)
+
+  holiday <-  df_all %>%
+    filter(type %in% input$prophet_plot,
+      ds < today() + weeks(1)) %>%
+    ggplot(aes(x = ds, y = holidays, color = type)) +
+    geom_line() +
+    geom_ribbon(aes(ymin = holidays_lower,
+                      ymax = holidays_upper,
+                    fill = type),
+                  alpha = 0.2,
+                  color = NA,
+                  na.rm = TRUE) +
+    scale_fill_manual(values = colors
+                                ) +
+    scale_color_manual(values = colors
+                                 ) +
+      theme_bw() +
+      theme(legend.position = "none") +
+      xlab("")
+
+
+  holiday
+})
+
+
+output$weekly <- renderPlot({
+  days <- weekdays(seq.Date(as.Date('2017-01-01'), by='d', length.out=7))
+  df_s <- prophetdf_success %>%
+    dplyr::mutate(dow = factor(weekdays(ds), levels = days)) %>%
+    dplyr::group_by(dow) %>%
+    dplyr::slice(1) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(dow) %>%
+    dplyr::mutate(type = "successful")
+
+  df_o <-  prophetdf_outreach %>%
+    dplyr::mutate(dow = factor(weekdays(ds), levels = days)) %>%
+    dplyr::group_by(dow) %>%
+    dplyr::slice(1) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(dow) %>%
+    dplyr::mutate(type = "outreach")
+
+  df_b <-  prophetdf_both %>%
+    dplyr::mutate(dow = factor(weekdays(ds), levels = days)) %>%
+    dplyr::group_by(dow) %>%
+    dplyr::slice(1) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(dow) %>%
+    dplyr::mutate(type = "both")
+
+  df_all <- bind_rows(df_s, df_o, df_b)
+
+  weekly <- df_all %>%
+    filter(type %in% input$prophet_plot) %>%
+    ggplot( aes(x = dow, y = weekly, group = type,
+                     color = type)) +
+    geom_line() +
+    geom_ribbon(aes(ymin = weekly_lower,
+                    ymax = weekly_upper,
+                    fill = type),
+                alpha = 0.2,
+                color = NA,
+                na.rm = TRUE) +
+    scale_fill_manual(values = colors) +
+    scale_color_manual(values = colors) +
+    labs(x = "Day of week") +
+    theme_bw() +
+    theme(legend.position = "none")
+
+  weekly
+})
+
+
+output$yearly <- renderPlot({
+  df_s <- prophetdf_success %>%
+    dplyr::mutate(doy = strftime(ds, format = "2000-%m-%d")) %>%
+    dplyr::group_by(doy) %>%
+    dplyr::slice(1) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(doy = zoo::as.Date(doy)) %>%
+    dplyr::arrange(doy) %>%
+    dplyr::mutate(type = "successful")
+
+
+  df_o <- prophetdf_outreach %>%
+    dplyr::mutate(doy = strftime(ds, format = "2000-%m-%d")) %>%
+    dplyr::group_by(doy) %>%
+    dplyr::slice(1) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(doy = zoo::as.Date(doy)) %>%
+    dplyr::arrange(doy) %>%
+    dplyr::mutate(type = "outreach")
+
+  df_b <- prophetdf_both %>%
+    dplyr::mutate(doy = strftime(ds, format = "2000-%m-%d")) %>%
+    dplyr::group_by(doy) %>%
+    dplyr::slice(1) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(doy = zoo::as.Date(doy)) %>%
+    dplyr::arrange(doy) %>%
+    dplyr::mutate(type = "both")
+
+  df_all <- bind_rows(df_s, df_o, df_b)
+
+  names(colors) <- stringi::stri_trans_totitle(attr(colors, "names"))
+  yearly <- df_all %>%
+    filter(type %in% input$prophet_plot) %>%
+    mutate(type = stringi::stri_trans_totitle(type)) %>%
+  ggplot(ggplot2::aes(x = doy, y = yearly,
+                      group = type,
+                      color = type)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = yearly_lower,
+                  ymax = yearly_upper,
+                  fill = type),
+              alpha = 0.2,
+              color = NA)  +
+  scale_x_date(labels = scales::date_format('%B %d')) +
+  scale_fill_manual("", values = colors) +
+  scale_color_manual("", values = colors) +
+  labs(x = "Day of year") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+
+  yearly
+})
+
+
+```
+
+HS Application Submission {data-orientation=columns}
+============================================================
+
+Overall Submissions Column
+------------------------------------------------------------
+### Application Status
+```{r}
+plotOutput("hs_apps",
+            click = clickOpts(id = "plot_click", clip = TRUE))
+
+hs_2021 <- hs_applications %>%
+  filter(grepl("KIPP", school),
+         class %in% 2021,
+         counselor %in% counselors_2021)          
+
+output$hs_apps <- renderPlot({
+
+hs_2021 %>%
+  unique() %>%
+  mutate(value = TRUE) %>%
+  spread(key = status, value = value, fill = FALSE) %>%
+  clean_names %>%
+  mutate(status = ifelse(submitted, "submitted",
+                         ifelse(in_progress | wishlist, "prog_wish", "ns"))) %>%
+  group_by(school, status) %>%
+  summarise(N=n()) %>%
+  ggplot(aes(x=fct_rev(status), y = N)) +
+  geom_bar(aes(fill= status),
+           show.legend = TRUE,
+           stat="identity") +
+  facet_wrap("school", nrow = 1) +
+  viridis::scale_fill_viridis(discrete = T, direction = -1, option = "D",
+                     breaks = c("prog_wish", "ns", "submitted"),
+                     labels = c("In Progress/Wishlist", "No Submission", "Submitted"))+
+  scale_x_discrete(breaks = NULL) +
+  labs(x=NULL, y="Number of Students", fill = NULL) +
+  theme_bw() +
+  theme(plot.title = element_text(face = "bold", hjust=0.5),
+        axis.title.y = element_text(face="bold"),
+        legend.position = "bottom")
+
+})
+
+
+
+```
+
+###Student
+
+```{r}
+name_header <- reactive({
+  req(input$student_click)
+
+names_ordered <- students_data_bar %>%
+    ungroup %>%
+    filter(school %in% input$plot_click[[3]]) %>%
+    spread(key=status, value = n_applications) %>%
+    arrange(submitted, no_status, wishlist) %>%
+    select(name, class) %>%
+    unique
+#identify students from click position (from stacked bar plot)
+plot_student_id <- ifelse(input$student_click[[2]] < 1, 1, floor(input$student_click[[2]]))
+
+name_class <- list()
+
+name_class$names_ordered <- names_ordered
+
+name_class$student_id <- plot_student_id
+
+name_class$names <- names_ordered[[1]][plot_student_id]
+
+name_class$class <- names_ordered[[2]][plot_student_id]
+
+name_class
+})
+
+
+```
+
+```{r}
+fillCol(flex = c(.15,.85),
+p(strong(h4(textOutput("text")))),
+tableOutput("students_table")
+)
+
+output$text <- renderText({
+  if(is.null(input$student_click)) {
+ "Click on the student bar plot to see a student's high school application history."
+} else {
+ paste0(name_header()$names, ", Class of ", name_header()$class)
+}
+})
+
+ output$students_table <- renderTable({
+   req(input$student_click)
+
+plot_student_id <- name_header()$student_id
+
+plot_student_name <- name_header()$names_ordered[[1]][plot_student_id]
+
+student_table %>%
+   filter(grepl("KIPP", current_school),
+          class %in% 2021,
+          counselor %in% counselors_2021) %>%
+   mutate(current_school = ifelse(grepl("Ascend", current_school),
+                                  "KIPP Ascend Middle School", current_school)) %>%
+     filter(current_school %in% input$plot_click[[3]]) %>%#add input$plot_click[[3]]
+     mutate(name = sprintf("%s %s", first_name, last_name)) %>%
+     #mutate(app_school_name = str_extract(app_school, ".*(?=-)")) %>% as.data.frame()
+     #select(name, hs_name, sub_status, decision, matriculation) %>%
+     mutate(sub_status = ifelse(is.na(sub_status) & is.na(hs_name) , "No Submission",
+                                ifelse(is.na(sub_status),
+                                       "No Status", sub_status))) %>%
+  filter(name %in% plot_student_name) %>%
+  select("High School Name" = hs_name, "Submission Status" = sub_status, Decision = decision,
+         Matriculation = matriculation)
+
+})
+
+```
+
+Schools
+------------------------------------------------------------
+
+### School View
+```{r}
+fillCol(flex = c(.07,.93),
+#test2
+p(strong(h4(textOutput("text2")))),
+
+plotOutput("students_barplot",
+            click = clickOpts(id = "student_click")
+          )
+)
+output$text2 <- renderText({
+  if(is.null(input$plot_click)) {
+ "Click on a school plot to see high school application submission status by student."
+} else {
+ input$plot_click[[3]]
+}
+})
+
+output$students_barplot <- renderPlot({
+  req(input$plot_click)
+  hs_app(students_data_bar, input$plot_click[[3]])
+})
+
+```
+
+
+Classes {data-orientation=columns}
 ======================================================================
 Inputs {.sidebar}
 -----------------------------------------------------------------------
@@ -308,7 +923,7 @@ The **sunburst sequence** shows the selected class's complete set of sequences f
 
 Longer "wedges" that stick out far from the sunburst indicate sets of students that have had more transitions than those "wedges" that remain close to the center.
 
-Row {data-height=400}
+Row {data-height=300}
 -----------------------------------------------------------------------
 ### Sunburst (all sequences of 8th grade completers)
 
@@ -442,10 +1057,10 @@ plotOutput("hs_outcome")
 ```
 
 
-Row {data-height=8000}
+Row
 -----------------------------------------------------------------------
 
-### Timelines
+### Timelines {data-height=8000}
 
 ```{r}
 

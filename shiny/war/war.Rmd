@@ -11,11 +11,13 @@ runtime: shiny
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
-#library(Cairo)
+library(Cairo)
 library(lubridate)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
+library(formattable)
+library(forcats)
 
 options(shiny.usecairo = TRUE)
 
@@ -24,6 +26,16 @@ load("/data/attendance.Rda")
 load("/data/transfers.Rda")
 
 load("/data/suspensions.Rdata")
+
+load("/data/dl_suspensions.Rda")
+
+load("/data/tb_observations.Rda")
+#Load observation data
+# obsData <- reactiveFileReader(8.64e+7,
+#   session = NULL,
+#   filePath = "/data/tb_observations.Rda",
+#   load,
+#   envir = .GlobalEnv)
 
 schools <- unique(ada_weekly_school$schoolabbreviation)
 
@@ -53,6 +65,7 @@ restart_time<-file.info('restart.txt')$mtime
 update_time_stamp <- lubridate::stamp("Attendance data last updated on Tuesday, September 14, 2001 at 4:41 pm")(restart_time)
 
 ```
+
 
 ```{r server_attendance, include = FALSE}
 att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
@@ -368,6 +381,27 @@ susp_plot_data_2 <- susp_plot_data %>%
                           NA,
                           Cum_N_3))
 
+oss_combined <- susp_plot_data %>%
+  select(school_name = School,
+         SY,
+         month = Month,
+         N_susps = N,
+         cum_susps = Cum_N,
+         month_year = Month_Year) %>%
+  mutate(school_name = as.character(school_name),
+         month = forcats::fct_inorder(as.character(month))) %>%
+  bind_rows(oss_rates %>%
+              select(school_name,
+                     month,
+                     N_susps,
+                     cum_susps, month_year) %>%
+              mutate(SY="SY16-17")
+  ) %>%
+  arrange(month_year) %>%
+  mutate(month = factor(as.character(month),
+                        levels = c("Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"),
+                        ordered = T))
+
 
 
 
@@ -411,7 +445,7 @@ selectInput("att_level",
            choices = c("School" = "school",
                        "Grade" = "grade",
                        "Home Room" = "hr"),
-           selected = "School")
+           selected = "school")
 
 conditionalPanel(condition = "input.att_level == 'grade' |
                   input.att_level == 'hr'",
@@ -538,43 +572,338 @@ renderPlot({
 })
 ```
 
-
 Suspensions
 =======================================================================
 Inputs {.sidebar}
 -----------------------------------------------------------------------
 ```{r}
-checkboxGroupInput("susp_years",
+selectInput("susp_years_2",
          "Select School Year",
-         choices = unique(susp_plot_data$SY),
-         selected = c("SY14-15", "SY15-16"))
+         choices = unique(oss_combined$SY),
+         selected = c("SY16-17"),
+         multiple = TRUE)    
+```
+
+Column {.tabset}
+-----------------------------------------------------------------------
+```{r}
+output$selected_oss <-  renderTable({
+
+  #req(input$oss_click)
+  validate(
+    need(input$oss_click != "", "Click on a bar to see details for that school's and month's OSSs.")
+  )
+
+  school <- input$oss_click$panelvar1
+  sy <- input$oss_click$panelvar2
+  selected_month <- as.integer(round(input$oss_click$x))
+
+  oss %>%
+    mutate(int_month = as.integer(month),
+           startdate = as.character(startdate)) %>%
+   filter(school_name == school,
+          as.integer(month) == selected_month) %>%  
+    select('Last Name' = studentlast,
+           'First Name' = studentfirst,
+           Grade = gradelevelshort,
+           Date = startdate,
+           School = school_name,
+           Category = category,
+           Details = reporteddetails
+           ) %>%
+    arrange(desc(Date))
+
+})
+
+```
+
+
+### OSS Year to Date
+
+```{r}
+
+oss_select <- reactive({
+  oss_combined %>%
+         filter(SY %in% input$susp_years_2)
+  })
+
+
+output$oss <-renderPlot({
+  ggplot(oss_select(),
+         aes(x = month, y=cum_susps)) +
+    geom_col() +
+    geom_col(aes(y=N_susps), fill = "black", width=.5) +
+    facet_grid(SY~school_name) +
+    labs(x = "",
+         y = "Suspensions (actual and cumulative)") +
+    theme_linedraw()
+  })
+
+fillCol(flex = c(.5,.5),
+  plotOutput("oss",
+              click = "oss_click"),
+
+  tableOutput("selected_oss")            
+  )
+
+```
+
+### Current OSS Rates per 100 students
+
+```{r}
+
+oss_rates_cps <- tibble::tribble(
+  ~school_name, ~period, ~susp_rate,
+  "CPS", "Semester 1 (All)", 3.4,
+  "CPS", "EOY (All)", 8.08,
+
+  "CPS", "Semester 1 (AA)", 6.24,
+  "CPS", "EOY (AA)", 16.09
+)
+
+
+renderPlot(
+  oss_regional %>%
+  ggplot(aes(x=school_name, y=cum_susp_rate)) +
+    geom_col(aes(group = school_name, fill = regional), show.legend = FALSE) +
+    geom_text(aes(label = round(cum_susp_rate,1)), vjust = 1, color = "white") +
+    geom_hline(data=oss_rates_cps,
+               aes(yintercept = susp_rate, color=period)) +
+  scale_fill_manual(values = c("gray30", "gray10")) +              
+  theme_linedraw()+
+  labs(x = "",
+       y = "Suspensions per 100 students")
+       )
+```
+
+### ISS Year to Date
+```{r}
+output$selected_iss <-  renderTable({
+
+  #req(input$oss_click)
+  validate(
+    need(input$iss_click != "", "Click on a bar to see details for that school's and month's OSSs.")
+  )
+
+  school_iss <- input$iss_click$panelvar1
+  sy_iss <- input$iss_click$panelvar2
+  selected_month_iss <- as.integer(round(input$iss_click$x))
+
+  iss %>%
+    mutate(int_month = as.integer(month),
+          startdate = as.character(startdate)) %>%
+   filter(school_name == school_iss,
+          as.integer(month) == selected_month_iss) %>%  
+    select('Last Name' = studentlast,
+           'First Name' = studentfirst,
+           Grade = gradelevelshort,
+           Date = startdate,
+           School = school_name,
+           Category = category,
+           Details = reporteddetails
+           ) %>%
+    arrange(desc(Date))
+
+})
+
+
+output$iss <-renderPlot({
+  ggplot(iss_rates, aes(x = month, y=cum_susps)) +
+  geom_col(aes(group = school_name)) +
+  geom_col(aes(y=N_susps), fill = "black", width=.5) +
+  facet_grid(.~school_name) +
+  theme_linedraw() +
+  labs(x = "",
+       y = "In School Suspensions")
+  })
+
+fillCol(flex = c(.5,.5),
+    plotOutput("iss",
+               click = brushOpts(id = "iss_click")
+               ),
+
+    tableOutput("selected_iss")            
+)
+
+```
+
+
+### Most Suspended Students
+```{r}
+
+output$days_hist <- renderPlot({
+  oss %>%
+    select(studentid,
+           studentlast,
+           studentfirst,
+           school_name,
+           numdays) %>%
+  ggplot(aes(x = as.integer(numdays))) +
+  geom_histogram(bindwidth = 1) +
+  scale_x_continuous(breaks = c(1:10)) +
+  facet_grid(.~school_name) +
+  theme_linedraw() +
+  labs(title = 'Distribution of OSSs by days given',
+       x = "# of days given",
+       y = "# of students")
+})
+
+
+ output$sups_dt <-DT::renderDataTable({
+    oss %>%
+        group_by(studentid,
+                 studentlast,
+                 studentfirst,
+                 school_name,
+                 gradelevelshort) %>%
+        summarize(N = n(),
+                  days_suspended  = sum(numdays)) %>%
+         arrange(desc(days_suspended)) %>%
+         ungroup() %>%
+         dplyr::select(
+           School = school_name,
+           Grade = gradelevelshort,
+           Last  = studentlast,
+           First  = studentfirst,
+           Suspensions = N,
+           'Days Suspended' = days_suspended
+           )
+ }, filter = 'top',
+    extensions = c('Scroller', 'Buttons'),
+    options = list(dom = 'Bfrtip',
+                   scrollY = 400,
+                   scroller = TRUE,
+                   buttons = c('copy', 'csv', 'excel', 'pdf', 'print'))
+    )
+
+fillCol(flex = c(.25,.75),
+        plotOutput("days_hist",
+                   click = brushOpts(id = "iss_click")
+                   ),
+
+        DT::dataTableOutput("sups_dt")            
+    )    
+```
+
+
+Teachers {data-navmenu="Observations"}
+=======================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+```{r}
+selectInput("obsv_schools",
+         "Select School",
+         choices = unique(teacher_last_two_weeks$school_abbrev),
+         selected = "KAP",
+         multiple = FALSE)    
+```
+
+
+Column {data-width=1000}
+-----------------------------------------------------------------------
+
+### YTD Observations of Teachers
+
+```{r}
+output$two_day_dt <- renderTable({
+  validate(
+    need(input$obsv_schools != "", "Select at least one school at left.")
+  )
+
+  teacher_last_two_weeks %>%
+    filter(school_abbrev == input$obsv_schools) %>%
+    mutate(two_weeks = n>=2) %>%
+    select(Teacher = full_name,
+           School = school_abbrev,
+           "Obsv last two weeks" = n) #%>%
+
+
+    #  DT::datatable()  %>%
+    #  DT::formatStyle(1:3, valueColumns = 3,
+    #    color = DT::styleInterval(
+    #                         c(0,1),
+    #                         c('red', '#8D8685', '#439539')
+    #                     )
+    #    )
+
+
+    })
+
+
+
+output$obs_teachers_plot <- renderPlot({
+
+  max_month <- monthly_tb %>%
+    ungroup() %>%
+    summarize(max_month = max(as.integer(month)))
+
+ obs_target <- max_month$max_month * 2
+
+
+  teacher_ytd_tb %>%
+    dplyr::filter(!is.na(topic_name)) %>%
+    dplyr::filter(school_abbrev == input$obsv_schools) %>%
+    dplyr::anti_join(admins %>% dplyr::select(user_id),
+              by=c("topic_ids" = "user_id")) %>%
+     dplyr::ungroup() %>%
+     dplyr::arrange(n) %>%
+     dplyr::mutate(name = forcats::fct_inorder(topic_name),
+                   target_met = n >= obs_target) %>%
+    ggplot(aes(x=name, y=n)) +
+      geom_col(aes(fill = target_met),
+               width = .75) +
+      coord_flip() +
+      viridis::scale_fill_viridis(discrete = TRUE,
+                                  direction = -1) +
+      theme_linedraw() +
+      labs(y = "",
+           x = "Observations to date",
+           fill = sprintf("Target\n(%s obs = 2 x %s months)\nmet?",
+                          obs_target,
+                          max_month$max_month))
+  })  
+
+  plotOutput("obs_teachers_plot")
+
 ```
 
 Column
 -----------------------------------------------------------------------
-### Suspensions Transfers to Date
+
+### Observations over last two weeks (`r format(int_start(last_two_weeks), '%b %d')` to `r format(int_end(last_two_weeks), '%b %d')`)
+
 ```{r}
-plotOutput("suspensions_viz")
+tableOutput("two_day_dt")
 ```
 
-### SY15-16 Suspensions by Month and Reason
+Admins {data-navmenu="Observations"}
+=======================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
 ```{r}
- renderPlot({
-   susp %>%
-     filter(code_translation == "Suspension") %>%
-     mutate(month2 = month(date_assigned, label = TRUE),
-            month = factor(as.character(month2),
-                           levels = levels(susp_plot_data$Month))) %>%
-     group_by(month, School, description) %>%
-     summarize(N = n()) %>%
-     complete(month, School, description, fill = list(N = 0)) %>%
-     #mutate(N=log(1+N)) %>%
-     ggplot(.) +
-     geom_tile(aes(x = month, y= description, fill=1+N), color = "white") +
-     facet_grid(.~School) +
-     viridis::scale_fill_viridis("Count", trans = 'log2') +  
-     theme_bw() +
-     theme(axis.text.x = element_text(angle = 45, hjust=1, vjust=1)) +
-     labs(x = "", y = "")
- })
+selectInput("obsv_schools_admins",
+         "Select School",
+         choices = unique(teacher_last_two_weeks$school_abbrev),
+         selected = "KAP",
+         multiple = FALSE)    
+```
+
+Column
+-----------------------------------------------------------------------
+
+### Observations by admins by month
+
+```{r}
+output$obs_admins_plot <- renderPlot({
+  monthly_tb %>%
+  inner_join(admins %>% select(user_id), by=c("author_ids" = "user_id")) %>%
+  filter(school_abbrev == input$obsv_schools_admins) %>%
+  ggplot(aes(x=month, y=n)) +
+    geom_col() +
+    facet_wrap(~auth_name)  +
+    theme_linedraw() +
+    labs(x = "Month", y = "Observations conducted")
+  })
+
+plotOutput("obs_admins_plot")
 ```

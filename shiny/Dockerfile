@@ -62,6 +62,7 @@ RUN R -e "install.packages(c('RCurl', 'rmarkdown', 'shiny', 'xtable', 'Cairo', '
 
 #RUN R -e "devtools::install_github('hadley/readr')"
 
+#RUN R -e "devtools::install_github('hadley/dplyr')"
 
 RUN R -e "devtools::install_github('jennybc/googlesheets')"
 
@@ -87,6 +88,9 @@ RUN R -e "install.packages('networkD3',  repos='https://cran.rstudio.com/')"
 
 RUN R -e "install.packages('igraph',  repos='https://cran.rstudio.com/')"
 
+RUN R -e "install.packages('formattable')"
+
+RUN R -e "install.packages('prophet')"
 # Set timezone to Chicago
 RUN cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \
     echo "America/Chicago" > /etc/timezone

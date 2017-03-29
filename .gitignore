@@ -1,25 +1,38 @@
 # Environment variables
 .env
 .Renviron
+<<<<<<< HEAD
+=======
 
+>>>>>>> 4d17da1522e7462c2c0c870682a64f201dbc8a80
 # config files used by cron
 *.dcf
-
 # OS X bs
 .DS_Store
-
 # rds files
 *.rds
-
 # httr_oath files
 *.httr-oauth
-
 # any log files
 *.log
 *.logs
+<<<<<<< HEAD
+#json keys
+data/config/bq/*.json
+data/config/gcs/*.json
+# Dropbox ephemera
+.dropbox
+
+=======
+
+#json keys
+data/config/bq/*.json
+data/config/gcs/*.json
 
 #json keys
 data/config/bq/*.json
 
 # Dropbox ephemera
 .dropbox
+>>>>>>> 4d17da1522e7462c2c0c870682a64f201dbc8a80
+.Rproj.user
