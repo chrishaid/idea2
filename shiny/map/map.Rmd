@@ -365,7 +365,7 @@ Illuminate
 
 Inputs {.sidebar}
 -----------------------------------------------------------------------
-### Inputs
+
 ```{r}
 selectInput("curric_type",
             label = "Select curriculum",
@@ -431,9 +431,11 @@ output$test_dt  <-  DT::renderDataTable({
                               scrollX = TRUE,
                               columnDefs = list(list(className = 'dt-left', targets = 1:2))
                               ),
-                class = 'cell-border table-condensed table-bordered'
+                #style = 'bootstrap',
+                class = 'table-condensed cell-border',
+                selection = list(target = "cell")
                 ) %>%
-    DT::formatStyle(4:n_format_cols, backgroundColor = DT::styleInterval(60, c('red', 'forestgreen')),
+    DT::formatStyle(4:n_format_cols, backgroundColor = DT::styleInterval(60, c('darkred', 'forestgreen')),
                     color = "white")
 })
 
