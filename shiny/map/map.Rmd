@@ -416,11 +416,12 @@ output$test_dt  <-  DT::renderDataTable({
                                          curric = input$curric_type,
                                          metric = input$metric_ew) %>%
                   rename(Grade = grade_level, School = school, Measure = metric),
-                rownames  = FALSE,  
-                options = list(
+                rownames  = FALSE,
+                  options = list(
                               dom = 't',
                               ordering = FALSE,
-                              scrollX = TRUE
+                              scrollX = TRUE,
+                              columnDefs = list(list(className = 'dt-left', targets = 1:2))
                               )
                 )
               })
