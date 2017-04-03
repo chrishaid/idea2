@@ -1,11 +1,14 @@
-FROM rocker/hadleyverse
+FROM rocker/tidyverse
 MAINTAINER Chris Haid <chaid@kippchicago.org>
 
 
 RUN apt-get update -y && apt-get install -y  \
+    default-jdk \
     libbz2-dev \
     libpcre3-dev \
-    liblzma-dev
+    liblzma-dev \
+    libicu-dev
+
 
 # add R packages necessary for jobs to run.
 
@@ -52,7 +55,7 @@ RUN mkdir -p $HOME/.R/ \
     && echo "CC=clang\n" >> $HOME/.R/Makevars
 
 RUN  ln -s /usr/lib/x86_64-linux-gnu/libgfortran.so.3 /usr/lib/libgfortran.so
-   
+
 # Install rstan
 RUN install2.r --error \
     inline \
