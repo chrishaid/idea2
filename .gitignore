@@ -29,6 +29,9 @@ data/config/gcs/*.json
 data/config/bq/*.json
 data/config/gcs/*.json
 
+#json keys
+data/config/bq/*.json
+
 # Dropbox ephemera
 .dropbox
 >>>>>>> 4d17da1522e7462c2c0c870682a64f201dbc8a80

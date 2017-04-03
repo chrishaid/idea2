@@ -1,4 +1,4 @@
-options(java.parameters = "- Xmx1024m")
+options(java.parameters = "-Xmx6g")
 
 require(dplyr)
 require(RSQLServer)

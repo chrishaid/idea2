@@ -16,9 +16,13 @@ library(lubridate)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
+library(stringr)
 
 # load map data
 load("/data/map.Rda")
+load("/data/eureka_wheatley.Rda")
+
+source("lib/ew_helpers.R")
 
 ```
 
@@ -64,9 +68,9 @@ output$cdf <- DT::renderDataTable(
                          axis.text.x = element_text(hjust=1,
                            angle = 45))
          if (input$type == "grade") {
-          p + facet_grid(School ~ end_grade)                       
+          p + facet_grid(School ~ end_grade)
          } else {
-          p + facet_grid(School ~ cohort)                       
+          p + facet_grid(School ~ cohort)
          }
 
                 })
@@ -313,7 +317,7 @@ Inputs {.sidebar}
 schoolyears <- unique(hist_scores$SY)
 
 selectInput("hs_school", label = "Select School",
-            choices = c("KAMS", "KAP", "KBCP", "KCCP"),
+            choices = c("KAMS", "KAP", "KBCP", "KCCP", "KOA", "KOP"),
             selected = "KAMS"
             )
 
@@ -358,4 +362,73 @@ style = "font-size:70%; height:100%")
 
 Illuminate
 ======================================================================
-Coming Soon!
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+### Inputs
+```{r}
+selectInput("curric_type",
+            label = "Select curriculum",
+            choices = c("Eureka", "Wheatley"),
+            selected = "Eureka")
+
+selectInput("grade_ew",
+            label = "Select grade",
+            choices = unique(assesssment_summary$grade_level),
+            selected = 8)
+
+selectInput("metric_ew",
+            label = "Select measure",
+            choices = c("avg_pct_correct",
+                       "pct_bm",
+                       "n_students",
+                       "n_bm"),
+            selected = "pct_bm")
+
+
+selectInput("test_type",
+            label = "Select assessment type",
+            choices = c("EOM",
+                        "MM",
+                        "TA",
+                        "Checkpoint"),
+            selected = "EOM",
+            multiple = TRUE)
+
+
+
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Eureka / Wheatley Assessment Results
+```{r}
+
+ew_data <- reactive({
+  assesssment_summary %>%
+    filter(type %in% input$test_type)
+  })
+
+output$test_dt  <-  DT::renderDataTable({
+  DT::datatable(create_long_table(ew_data() %>% filter(n_students >= 15),
+                                         grade = input$grade_ew,
+                                         curric = input$curric_type,
+                                         metric = input$metric_ew) %>%
+                  rename(Grade = grade_level, School = school, Measure = metric),
+                rownames  = FALSE,
+                  options = list(
+                              dom = 't',
+                              ordering = FALSE,
+                              scrollX = TRUE,
+                              columnDefs = list(list(className = 'dt-left', targets = 1:2))
+                              )
+                )
+              })
+
+
+fillCol(
+DT::dataTableOutput("test_dt")
+)
+
+```
