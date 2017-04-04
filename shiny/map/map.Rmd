@@ -360,7 +360,7 @@ style = "font-size:70%; height:100%")
 ```
 
 
-Illuminate
+Eureka Wheatley {data-navmenu="Illuminate" data-orientation=rows}
 ======================================================================
 
 Inputs {.sidebar}
@@ -399,9 +399,8 @@ selectInput("test_type",
 
 ```
 
-Row
+Row {data-height=220}
 -----------------------------------------------------------------------
-
 ### Eureka / Wheatley Assessment Results
 ```{r}
 
@@ -409,7 +408,7 @@ ew_data <- reactive({
   assesssment_summary %>%
     filter(type %in% input$test_type) %>%
     filter(n_students >= 15) %>%
-    create_long_table(grade = input$grade_ew,
+    create_wide_table(grade = input$grade_ew,
                       curric = input$curric_type,
                       metric = input$metric_ew) %>%
     rename(Grade = grade_level, School = school, Measure = metric)
@@ -433,15 +432,73 @@ output$test_dt  <-  DT::renderDataTable({
                               ),
                 #style = 'bootstrap',
                 class = 'table-condensed cell-border',
-                selection = list(target = "cell")
+                selection = list(target = "cell", mode = "single")
                 ) %>%
     DT::formatStyle(4:n_format_cols, backgroundColor = DT::styleInterval(60, c('darkred', 'forestgreen')),
                     color = "white")
 })
 
 
+output$cell_selected <-renderPrint({input$test_dt_cells_selected})
+
+test_data <-reactive({
+
+  req(input$test_dt_cells_selected)
+
+  test_df <- ew_data()
+  cells <- input$test_dt_cells_selected
+
+  ass_name <- colnames(test_df[,cells[[2]]+1])
+
+  out <- test_df[cells[[1]],] %>%
+          select(grade_level = Grade)
+
+  out$curriculum <- input$curric_type
+
+  out$test_name_short <- ass_name
+
+  out %>% inner_join(short_names_assessemnt_id_lookup,
+                     by = c("grade_level", "curriculum", "test_name_short"))
+
+  })
+
+output$standards_plot <- renderPlot({
+
+  ass_data <- test_data()
+  standard_results_summary %>%
+  filter(assessment_id == ass_data$assessment_id, points_possible>0, n_students>=15) %>%
+    tidyr::gather("metric", "value", n_students:pct_correct) %>%
+    filter(metric %in% c("pct_mastered", "pct_correct")) %>%
+    mutate(standard = sprintf("%s\n(%s)", str_wrap(description, width = 35), custom_code),
+           metric = if_else(metric == "pct_mastered", "%\nMastered", "Avg\n% Correct")) %>%
+    ggplot(aes(y= value, x = school_abbrev)) +
+      scale_y_continuous(labels = scales::percent, limits = c(0,1)) +
+      geom_col(aes(fill = value), position =  "dodge") +
+      facet_grid(metric~standard) +
+      coord_flip() +
+      viridis::scale_fill_viridis(direction = -1) +
+      theme_bw() +
+      theme(strip.text = element_text(size = 11)) +
+      labs(x = "",
+           y = "",
+           fill = "% of\nStudents")
+
+
+  })
+
+
 fillCol(
 DT::dataTableOutput("test_dt")
+#fillRow(tableOutput("test_data"))
 )
 
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Performance by standard (click on cells above to see that assessment's results)
+
+```{r}
+fillCol(plotOutput("standards_plot"), width ='100%')
 ```

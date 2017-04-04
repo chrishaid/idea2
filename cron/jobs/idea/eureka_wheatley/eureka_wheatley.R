@@ -48,21 +48,29 @@
   
   assessments<-get_illuminate("assessments", collect = TRUE)
   
-  #agg_student_responses_standard <- get_illuminate("agg_student_responses_standard") 
-  
   flog.info("Get aggregate student responses data")
   agg_student_responses <- get_illuminate("agg_student_responses_deduped") %>%
     drop_fivetran_cols() %>%
     filter(date_taken >= bq_date) %>%
     collect(n = Inf)
   
+  flog.info("Get aggregate student & standard responses data")
+  agg_student_responses_standard <- get_illuminate("agg_student_responses_standard_deduped") %>%
+    drop_fivetran_cols() %>%
+  #  filter(date_taken >= bq_date) %>%
+    collect(n = Inf)
+  
+  flog.info("Get standards")
+  standards <- get_illuminate("standards", schema = "standards") %>%
+    drop_fivetran_cols() %>%
+    #  filter(date_taken >= bq_date) %>%
+    collect(n = Inf)
   
   flog.info("Get student info (Illuminate)")
   students <- get_illuminate("students", "public", collect = TRUE)
   
-  #ps_stus<-get_ps("students") %>% collect()
   
-  flog.info("GEt student info (PowerSchool)")
+  flog.info("Get student info (PowerSchool)")
   ps_stus <- get_ps("students") %>% 
     drop_fivetran_cols %>%
     select(
@@ -76,7 +84,6 @@
   
   
   flog.info("Join student responses to assesments and it E/W assessments")
-  
   
   # This regexp ids Wheatley and Eureka assessmsnts 
   
@@ -142,7 +149,7 @@
   
   flog.info("Selecting summary columns")
   assess_summary_2 <- assess_summary %>%
-    select(grade_level, school=school_abbrev, curriculum, module, type, eom_type, title, test_name, 
+    select(assessment_id, grade_level, school=school_abbrev, curriculum, module, type, eom_type, title, test_name, 
            date_taken_1, date_taken_2, n_students, n_bm, pct_bm, avg_pct_correct)
   
   x  <- assess_summary_2 %>%
@@ -156,13 +163,66 @@
   
   test_name_factor  <-levels(x$test_name_factor)
     
-  flog.info("Finallizing summary data odrer")
+  flog.info("Finalizing summary data order")
   assesssment_summary <- assess_summary_2 %>%
     #filter(!is.na(module)) %>%
-    mutate(test_name_factor = factor(test_name, levels = test_name_factor)) 
+    mutate(test_name_factor = factor(test_name, levels = test_name_factor),
+           test_name_short = str_extract(test_name, "M\\d.+")) 
 
+  flog.info("Creating assessment_results_by_standard")
+  
+  assessment_results_by_standard <- agg_student_responses_standard %>%
+    select(student_id, standard_id, 
+           assessment_id,
+           performance_band_id,
+           performance_band_level,
+           mastered,
+           points,
+           points_possible,
+           number_of_questions) %>%
+    inner_join(students %>% select(student_id), by = "student_id") %>%
+    inner_join(standards %>% 
+                 select(standard_id, 
+                        parent_standard_id,
+                        level, 
+                        description,
+                        custom_code),
+               by = "standard_id")
+  
+  
+  flog.info("Creating assessment id lookup table")
+  short_names_assessemnt_id_lookup <- assesssment_summary %>%
+    select(assessment_id, grade_level, curriculum, test_name_short) %>%
+    distinct()
+    
+  flog.info("Creating standards summary table")
+  standard_results_summary <- assessment_results_by_standard %>%
+    inner_join(students %>% select(student_id, local_student_id) %>%
+                 mutate(local_student_id  = as.integer(local_student_id)),
+               by = "student_id") %>%
+    left_join(ps_stus %>%
+                select(
+                  schoolid,
+                  student_number),
+              by=c("local_student_id" = "student_number")) %>%
+    group_by(schoolid,
+             assessment_id,
+             standard_id,
+             custom_code,
+             description) %>%
+    summarize(n_students = n(),
+              sum_mastered = sum(as.integer(mastered)),
+              pct_mastered = round(sum_mastered/n_students, 1),
+              points_possible = sum(points_possible),
+              sum_points = sum(points),
+              pct_correct =round(sum_points/points_possible,1)) %>%
+    inner_join(schools, by = "schoolid")
+  
 flog.info("Saving data.")
 save(assesssment_summary,
+     assessment_results_by_standard,
+     short_names_assessemnt_id_lookup,
+     standard_results_summary,
      file = "/data/eureka_wheatley.Rda")
 
 flog.info("Done!")
