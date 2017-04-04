@@ -14,7 +14,7 @@ RUN apt-get update -y && apt-get install -y  \
 
 RUN R -e "install.packages(c('ETLUtils', 'RJDBC'))"
 
-RUN R -e "devtools::install_github('imanuelcostigan/RSQLServer')"
+RUN R -e "devtools::install_github('imanuelcostigan/RSQLServer@ae0cd8d')"
 
 RUN R -e "devtools::install_github('jennybc/googlesheets')"
 
