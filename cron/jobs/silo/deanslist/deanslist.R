@@ -19,7 +19,7 @@ library(lubridate)
 extract_school_name <- . %>% mutate(school_name = str_extract(school_name, "K.{2,4}$"))
 
 # set up logging
-
+if(!dir.exists("logs")) dir.create("logs")
 flog.threshold(TRACE)
 flog.appender(appender.tee("logs/deanslist.log"))
 

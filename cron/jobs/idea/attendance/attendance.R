@@ -10,6 +10,7 @@ require(futile.logger)
 # set up logging
 setwd("/jobs/idea/attendance")
 
+if(!dir.exists("logs")) dir.create("logs")
 flog.threshold(TRACE)
 flog.appender(appender.tee("logs/attendance.log"))
 

@@ -12,6 +12,7 @@ library(futile.logger)
 setwd("/jobs/idea/ktc/")
 source("lib/library.R")
 
+if(!dir.exists("logs")) dir.create("logs")
 flog.threshold(TRACE)
 flog.appender(appender.tee("logs/ktc.log"))
 

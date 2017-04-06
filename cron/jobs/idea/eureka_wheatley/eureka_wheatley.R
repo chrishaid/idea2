@@ -13,6 +13,7 @@
   library(forcats)
   # set up logging
   
+  if(!dir.exists("logs")) dir.create("logs")
   flog.threshold(TRACE)
   flog.appender(appender.tee("logs/eureka_wheatley.log"))
   
