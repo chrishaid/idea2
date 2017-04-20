@@ -23,6 +23,8 @@ library(purrr)
 library(tidyr)
 library(janitor)
 library(forcats)
+library(prophet)
+library(formattable)
 
 
 enableBookmarking(store = "url")
@@ -891,6 +893,219 @@ output$students_barplot <- renderPlot({
 })
 
 ```
+Match {data-navmenu="College" data-orientation=columns}
+========================================================
+
+Column{data-width = 100}
+----------------------------------------------------------
+### Match 2016
+
+```{r}
+plotOutput("match_overview", click = clickOpts(id = "match_click" ))
+
+output$match_overview <- renderPlot({
+  match_plot(match_data = final_undermatch,
+           accepted_data = final_accept)
+})
+
+```
+Column {data-width = 100}
+----------------------------------------------------------
+### Student Match Plot
+
+```{r}
+output$student_match_plot <- renderPlot({
+  #req(input$match_click)
+  validate(
+    need(input$match_click != "", "Click on a student graph to zoom.")
+  )
+
+  student_match <- final_undermatch %>%
+   filter(student_name %in% input$match_click[[3]])
+
+  student_accept <- final_accept %>%
+  filter(student_name %in% input$match_click[[3]])
+
+  if(student_match$undermatch == "undermatched"){
+  lt <- "undermatched"
+  col_fill <- "#255694"
+} else {
+  lt <- "matched"
+  col_fill <- "#CFCCC1"
+}
+plot_student_m <- ggplot() +
+  geom_rect(data = student_match,
+            aes(linetype = lt),
+            fill = col_fill,
+            xmin = -Inf,
+            xmax = Inf,
+            ymin = -Inf,
+            ymax = Inf) +
+  geom_dotplot(data = student_accept %>%
+               filter(school_matches %in% "no_match",
+                      school_id != school_enroll),
+               aes(x = plot,
+                   y = ecc,
+                   fill = school_matches),
+               binwidth = 5,
+               binaxis = "y",
+               stackdir = "center",
+               dotsize = 1
+               ) +
+  geom_dotplot(data = student_accept %>%
+                 filter(school_matches %in% "match_school",
+                        school_id != school_enroll),
+               aes(x = plot,
+                   y = ecc,
+                   fill = school_matches),
+               binwidth = 5,
+               binaxis = "y",
+               stackdir = "center",
+               dotsize = 1
+               ) +
+  geom_dotplot(data = student_match,
+               aes(x = plot,
+                   y = enroll_ecc,
+                   fill = "enrolled"),
+               binwidth = 5,
+               binaxis = "y",
+               stackdir = "center",
+               dotsize = 1
+               ) +
+  geom_hline(data = student_match,
+             aes(yintercept = 40),
+             color = "white",
+             alpha = 0.25) +
+  geom_hline(data = student_match,
+             aes(yintercept = 60),
+             color = "white",
+             alpha = 0.25) +
+  geom_hline(data = student_match,
+             aes(yintercept = 80),
+             color = "white",
+             alpha = 0.25) +
+ facet_wrap("student_name") +
+ scale_color_manual("",
+                    values = c("umatch_bound" = "#C49A6C"),
+                    breaks = "umatch_bound",
+                    labels = "Undermatch Boundary") +
+ scale_fill_manual("",
+                   values = c("enrolled" = "#E27425",
+                              "no_match" = "white",
+                              "match_school" = "#FEDA00"),
+                   breaks = c("enrolled",
+                              "match_school",
+                              "no_match"),
+                   labels = c("Enrollment",
+                              "Matching Colleges",
+                              "Non-matching Colleges")) +
+ scale_x_discrete(breaks = c("school"),
+                  labels = NULL) +
+  scale_linetype_manual("",
+                        values = c("undermatched" = 0,
+                                   "matched" = 0),
+                        breaks = c("undermatched",
+                                   "matched"),
+                        labels = c("Undermatch",
+                                   "Match"),
+                        guide = guide_legend(override.aes =
+                                            list(fill =
+                                              ifelse(lt == "undermatched",
+                                                      "#255694", "#CFCCC1")
+                                                      ))) +
+    theme_bw() +
+    theme(panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          legend.position = "bottom") +
+          labs(x = "College Acceptances",
+               y = "Expected College Completion (%)")
+
+
+if(lt == "undermatched"){
+ plot_match <- plot_student_m +
+    geom_hline(data = student_match %>%
+                filter(undermatch %in% "undermatched"),
+               aes(yintercept = umatch_bound,
+                   color = "umatch_bound"),
+               linetype = 2)
+
+  } else{
+  plot_match <- plot_student_m
+  }
+  plot_match
+})
+
+plotOutput("student_match_plot",
+            click = clickOpts("student_match_click"))
+```
+
+Column {data-width = 300}
+----------------------------------------------------------
+### Student Table
+
+```{r}
+formattableOutput("match_table")
+
+output$match_table <- renderFormattable({
+
+  req(input$match_click)
+
+  student_t <- final_accept %>%
+    filter(school_id != school_enroll) %>%
+    bind_rows(final_undermatch) %>%
+    filter(student_name %in% input$match_click[[3]])
+
+  student_table <- student_t %>%
+    mutate(ecc = ifelse(is.na(ecc) & is.na(name.x), enroll_ecc, ecc),
+           school_matches = ifelse(is.na(school_matches) &
+                                   is.na(name.x),
+                                   "enroll", school_matches),
+           name.x = ifelse(is.na(name.x), name, name.x)) %>%
+  group_by(id) %>%
+  mutate(max_ecc = ifelse(is.na(max_ecc), max(ecc, na.rm = TRUE),
+                          max_ecc)
+                          ) %>%
+  ungroup() %>%
+  mutate(ecc_diff = max_ecc - ecc) %>%
+    select(College = name.x,
+           ECC = ecc,
+           "ECC Difference" = ecc_diff,
+           Type = type,
+           school_id,
+           school_enroll,
+           school_matches,
+           undermatch
+           ) %>%
+    arrange(desc(ECC)) %>%
+    as.data.frame()
+
+    formattable(student_table, align = c("l", "r", "r", "l"),
+                list(formatter("span", style = x ~
+                                style("border-style" = c("solid","5px"))),
+                     College = formatter("span", style = ~
+                                        style(display = "inline-block",
+                                              "border-radius" = "10px",
+                                              "padding-right" = "10px",
+                                              "padding-left" = "10px",
+                                              font.weight = "bold",
+                                              "background-color" =
+                                              ifelse(is.na(ECC), "white",
+                                              ifelse(undermatch ==
+                                                "undermatched",
+                                                "#255694", "#CFCCC1")),
+                     color = ifelse(school_matches == "enroll", "#E27425",
+                                   ifelse(school_matches == "match_school",
+                                          "#FEDA00", "white")))),
+                     'ECC Difference' = normalize_bar("burlywood",
+                                                      na.rm = TRUE),
+                     school_matches = FALSE,
+                     school_enroll = FALSE,
+                     undermatch = FALSE,
+                     school_id = FALSE))
+})
+```
+
 
 
 Classes {data-orientation=columns}
