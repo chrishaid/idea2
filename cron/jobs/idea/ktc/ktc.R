@@ -372,7 +372,141 @@ q_mod <- lm(y ~ I(as.numeric(ds)) + I(as.numeric(ds)^2), data = success_csum)
 flog.info("Quadratic model predictions")
 goal_tbl$qmod <- predict(q_mod, goal_tbl[,"ds"])
 
+##Match Data ####
+contact_match <- contact %>%
+  select(id,
+         student_name = name,
+         class = kipp_hs_class_c)
 
+application_match <- applications %>%
+  select(applicant_c,
+         school_id = school_c,
+         app_status = application_status_c,
+         decision = matriculation_decision_c,
+         is_deleted) %>%
+  filter(!is_deleted)
+
+account_match <- account %>%
+  select(id,
+         name,
+         record_type_id,
+         ecc = adjusted_6_year_minority_graduation_rate_c)
+
+acceptances_3plus <-  contact_match %>%
+  inner_join(application_match,
+             by = c("id"  = "applicant_c")) %>%
+  inner_join(account_match,
+             by = c("school_id" = "id")) %>%
+  inner_join(record_type,
+             by = "record_type_id") %>%
+  filter(class %in% 2016,
+         app_status %in% "Accepted",
+         # enroll_type %in% "College",
+         record_type %in% "College") %>%
+  group_by(id, student_name) %>%
+  summarise(N=n()) %>%
+  filter(N >= 3)
+
+enrollment_school_with_ecc <- enrollment_c %>%
+  select(parent_id = id,
+         id = student_c,
+         school_enroll = school_c,
+         enroll_type = type_c,
+         enroll_status = status_c) %>%
+  inner_join(contact %>%
+               select(id,
+                      student_name = name,
+                      class = kipp_hs_class_c),
+             by = "id") %>%
+  inner_join(account %>%
+               select(id,
+                      name,
+                      record_type_id,
+                      ecc = adjusted_6_year_minority_graduation_rate_c),
+             by = c("school_enroll" = "id")) %>%
+  filter(class %in% 2016,
+         enroll_type %in% "College",
+         enroll_status %in% c("Attending", "Withdrawn"),
+         !is.na(ecc)) %>%
+  mutate(umatch_bound = ecc +10) %>%
+  rename(enroll_ecc = ecc)
+
+undermatch_denom <- acceptances_3plus %>%
+  inner_join(enrollment_school_with_ecc, by = c("id", "student_name"))
+
+all_acceptances <- contact_match %>%
+  inner_join(application_match,
+             by = c("id"  = "applicant_c")) %>%
+  inner_join(account_match,
+             by = c("school_id" = "id")) %>%
+  inner_join(record_type,
+             by = "record_type_id") %>%
+  filter(class %in% 2016,
+         app_status %in% "Accepted",
+         record_type %in% "College",
+         id %in% denom$id) %>%
+  group_by(id,
+           student_name) %>%
+  mutate(max_ecc = max(ecc, na.rm = TRUE),
+         school_matches = ifelse(max_ecc - ecc <= 10,
+                                 "match_school",
+                                 "no_match"),
+         plot = "school")
+
+undermatch <- all_acceptances %>%
+  left_join(undermatch_denom,
+            by = c("id",
+                   "student_name")) %>%
+  mutate(undermatch = ifelse(ecc - enroll_ecc >= 10,
+                             "undermatched",
+                             "matched")) %>%
+  filter(!is.na(ecc)) %>%
+  group_by(id, student_name, undermatch) %>%
+  summarise() %>%
+  filter(undermatch == "undermatched")
+
+final_undermatch <- undermatch_denom %>%
+  left_join(undermatch,
+            by = c("id",
+                   "student_name")) %>%
+  mutate(undermatch = ifelse(is.na(undermatch),
+                             "matched",
+                             undermatch)) %>%
+  mutate(plot = "school")
+
+final_accept <- all_acceptances %>%
+  left_join(final_undermatch,
+            by = c("id",
+                   "student_name",
+                   "plot"))
+
+order_names <- final_accept %>%
+  arrange(desc(max_ecc)) %>%
+  select(id,
+         student_name) %>%
+  unique()
+
+final_accept <- final_accept %>%
+  ungroup() %>%
+  mutate(student_name = factor(student_name,
+                               levels = order_names$student_name))
+
+final_undermatch <- final_undermatch %>%
+  ungroup() %>%
+  mutate(student_name = factor(student_name,
+                               levels = order_names$student_name))
+
+final_accept <- final_accept %>%
+  left_join(account %>%
+              select(id,
+                     type),
+            by = c("school_id" = "id"))
+
+final_undermatch <- final_undermatch %>%
+  left_join(account %>%
+              select(id,
+                     type),
+            by = c("school_enroll" = "id"))
 
 flog.info("Saving Data")
 save(
@@ -393,6 +527,8 @@ save(
      prophetdf_both,
      prophet_all,
      goal_tbl,
+     final_undermatch,
+     final_accept,
      file = "/data/ktc.Rda"
      )
 

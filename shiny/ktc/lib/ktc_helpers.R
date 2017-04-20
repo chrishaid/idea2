@@ -128,3 +128,100 @@ hs_app <- function(.data, school_n) {
                                      color = order_name_col[[2]])) +
     coord_flip()
 }
+
+##Produces match ggplot####
+match_plot <- function(match_data, accepted_data){
+  ggplot() +
+    geom_rect(data = match_data %>%
+                filter(undermatch %in% "undermatched"),
+              aes(linetype = "undermatched"),
+              fill = "#255694",
+              xmin = -Inf,
+              xmax = Inf,
+              ymin = -Inf,
+              ymax = Inf) +
+    geom_rect(data = match_data %>%
+                filter(!undermatch %in% "undermatched"),
+              aes(linetype = "matched"),
+              fill = "#CFCCC1",
+              xmin = -Inf,
+              xmax = Inf,
+              ymin = -Inf,
+              ymax = Inf) +
+    geom_dotplot(data = accepted_data %>%
+                   filter(school_matches %in% "no_match",
+                          name.x != name.y),
+                 aes(x = plot,
+                     y = ecc,
+                     fill = school_matches),
+                 binwidth = 5,
+                 binaxis = "y",
+                 stackdir = "center",
+                 dotsize = 2) +
+    geom_dotplot(data = accepted_data %>%
+                   filter(school_matches %in% "match_school",
+                          name.x != name.y),
+                 aes(x = plot,
+                     y = ecc,
+                     fill = school_matches),
+                 binwidth = 5,
+                 binaxis = "y",
+                 stackdir = "center",
+                 dotsize = 2) +
+    geom_dotplot(data = match_data,
+                 aes(x = plot,
+                     y = enroll_ecc,
+                     fill = "enrolled"),
+                 binwidth = 5,
+                 binaxis = "y",
+                 stackdir = "center",
+                 dotsize = 2) +
+    geom_hline(data = match_data %>%
+                 filter(undermatch %in% "undermatched"),
+               aes(yintercept = umatch_bound,
+                   color = "umatch_bound"),
+               linetype = 2) +
+    geom_hline(data = match_data,
+               aes(yintercept = 25),
+               color = "white",
+               alpha = 0.25) +
+    geom_hline(data = match_data,
+               aes(yintercept = 50),
+               color = "white",
+               alpha = 0.25) +
+    geom_hline(data = match_data,
+               aes(yintercept = 75),
+               color = "white",
+               alpha = 0.25) +
+    facet_wrap("student_name", ncol = 6) +
+    scale_color_manual("", values = c("umatch_bound" = "#C49A6C"),
+                       breaks = "umatch_bound",
+                       labels = "Undermatch Boundary") +
+    scale_fill_manual("", values = c("enrolled" = "#E27425",
+                                     "no_match" = "white",
+                                     "match_school" = "#FEDA00"),
+                      breaks = c("enrolled",
+                                 "match_school",
+                                 "no_match"),
+                      labels = c("Enrollment",
+                                 "Matching Colleges",
+                                 "Non-matching Colleges")) +
+    scale_x_discrete(breaks = c("school"),
+                     labels = NULL) +
+    scale_linetype_manual("", values = c("undermatched" = 0,
+                                         "matched" = 0),
+                          breaks = c("undermatched",
+                                     "matched"),
+                          labels = c("Undermatch",
+                                     "Match"),
+                          guide = guide_legend(override.aes =
+                                            list(fill =
+                                                c("undermatched" = "#255694",
+                                                  "matched" = "#CFCCC1")))) +
+    theme_bw() +
+    theme(panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          legend.position = "bottom") +
+    labs(x = "College Acceptances",
+         y = "Expected College Completion (%)")
