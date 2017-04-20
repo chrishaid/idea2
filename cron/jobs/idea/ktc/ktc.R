@@ -41,7 +41,11 @@ applications <- get_alumni_db("application_c", collect = TRUE)
 flog.info("Get Contact Note")
 contact_note_c <- get_alumni_db("contact_note_c", collect = TRUE)
 
-
+flog.info("Get Record Type")
+record_type <- get_alumni_db("record_type") %>%
+  select(record_type_id = id,
+         record_type = name) %>%
+  collect()
 
 flog.info("Preparing enrollments data")
 class_all <- prep_class()
@@ -364,7 +368,8 @@ goal_tbl <- as.tbl(data.frame(goal_n = seq(0,740, by = 7.7),
                               ds = as.POSIXct(ymd("2017-01-01") + days(0:96))))
 
 success_csum <- df_final_csum %>%
-  filter(ds >= ymd("2017-01-01"))
+  filter(ds >= ymd("2017-01-01") &
+  ds <= ymd("2017-04-07"))
 
 flog.info("Fitting quadratic model")
 q_mod <- lm(y ~ I(as.numeric(ds)) + I(as.numeric(ds)^2), data = success_csum)
