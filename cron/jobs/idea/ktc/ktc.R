@@ -377,6 +377,8 @@ q_mod <- lm(y ~ I(as.numeric(ds)) + I(as.numeric(ds)^2), data = success_csum)
 flog.info("Quadratic model predictions")
 goal_tbl$qmod <- predict(q_mod, goal_tbl[,"ds"])
 
+
+flog.info("Match Datasets")
 ##Match Data ####
 contact_match <- contact %>%
   select(id,
