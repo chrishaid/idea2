@@ -449,7 +449,7 @@ all_acceptances <- contact_match %>%
   filter(class %in% 2016,
          app_status %in% "Accepted",
          record_type %in% "College",
-         id %in% denom$id) %>%
+         id %in% undermatch_denom$id) %>%
   group_by(id,
            student_name) %>%
   mutate(max_ecc = max(ecc, na.rm = TRUE),
