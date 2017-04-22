@@ -812,7 +812,7 @@ HS Application Submission {data-orientation=columns}
 
 Overall Submissions Column
 ------------------------------------------------------------
-### Application Status
+### Students with one or more submitted applications
 ```{r}
 plotOutput("hs_apps",
             click = clickOpts(id = "plot_click", clip = TRUE))
@@ -836,11 +836,15 @@ hs_2021 %>%
   ggplot(aes(x=fct_rev(status), y = N)) +
   geom_bar(aes(fill= status),
            show.legend = TRUE,
-           stat="identity") +
+           stat="identity",
+           width = .5) +
   facet_wrap("school", nrow = 1) +
-  viridis::scale_fill_viridis(discrete = T, direction = -1, option = "D",
+  scale_fill_manual("", values = c("submitted" = "#440154FF",
+                                   "prog_wish" = "#20A387FF",
+                                   "ns" = "#FDE725FF"),
                      breaks = c("prog_wish", "ns", "submitted"),
-                     labels = c("In Progress/Wishlist", "No Submission", "Submitted"))+
+                     labels = c("In Progress/Wishlist", "No Submission", "Submitted")
+                     )+
   scale_x_discrete(breaks = NULL) +
   labs(x=NULL, y="Number of Students", fill = NULL) +
   theme_bw() +
@@ -858,7 +862,7 @@ hs_2021 %>%
 
 ```{r}
 name_header <- reactive({
-  req(input$student_click)
+  # req(input$student_click)
 
 names_ordered <- students_data_bar %>%
     ungroup %>%
@@ -892,17 +896,20 @@ p(strong(h4(textOutput("text")))),
 tableOutput("students_table")
 )
 
+
+
 output$text <- renderText({
-  if(is.null(input$student_click)) {
- "Click on the student bar plot to see a student's high school application history."
-} else {
- paste0(name_header()$names, ", Class of ", name_header()$class)
-}
+  req(input$student_click)
+
+paste0(name_header()$names, ", Class of ", name_header()$class)
+
 })
 
  output$students_table <- renderTable({
-   req(input$student_click)
-
+   #req(input$student_click)
+   validate(
+     need(input$student_click != "", "Click on the student bar plot to see a student's high school application history.")
+   )
 plot_student_id <- name_header()$student_id
 
 plot_student_name <- name_header()$names_ordered[[1]][plot_student_id]
@@ -934,7 +941,7 @@ Schools
 ### School View
 ```{r}
 fillCol(flex = c(.07,.93),
-#test2
+
 p(strong(h4(textOutput("text2")))),
 
 plotOutput("students_barplot",
@@ -942,16 +949,14 @@ plotOutput("students_barplot",
           )
 )
 output$text2 <- renderText({
-  if(is.null(input$plot_click)) {
- "Click on a school plot to see high school application submission status by student."
-} else {
+req(input$plot_click)
  input$plot_click[[3]]
-}
 })
 
 output$students_barplot <- renderPlot({
-  req(input$plot_click)
-  hs_app(students_data_bar, input$plot_click[[3]])
+  validate(
+    need(input$plot_click != "", "Click on a school plot to see high school application submission status by student."))
+    hs_app(students_data_bar, input$plot_click[[3]])
 })
 
 ```
