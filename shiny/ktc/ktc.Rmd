@@ -41,7 +41,7 @@ counselors <- unique(contacts_summary$name.y)
 
 statuses <- unique(contacts_summary$status_c) %>% discard(is.na)
 
-counselors_2021 <- c("Catrina Thomas", "China Hill", "Tiffany Harrell")
+# counselors_2021 <- c("Catrina Thomas", "China Hill", "Tiffany Harrell")
 
  todays_date <- today()
  days_elapsed_7 <- todays_date - days(7)
@@ -817,10 +817,10 @@ Overall Submissions Column
 plotOutput("hs_apps",
             click = clickOpts(id = "plot_click", clip = TRUE))
 
-hs_2021 <- hs_applications %>%
-  filter(grepl("KIPP", school),
-         class %in% 2021,
-         counselor %in% counselors_2021)
+#hs_2021 <- hs_applications %>%
+#  filter(grepl("KIPP", school),
+#         class %in% hs_class(8))
+         #counselor %in% counselors_2021)
 
 output$hs_apps <- renderPlot({
 
@@ -915,9 +915,10 @@ plot_student_id <- name_header()$student_id
 plot_student_name <- name_header()$names_ordered[[1]][plot_student_id]
 
 student_table %>%
-   filter(grepl("KIPP", current_school),
-          class %in% 2021,
-          counselor %in% counselors_2021) %>%
+  # filter(grepl("KIPP", current_school),
+  #        class %in% hs_class(8)
+  #        #counselor %in% counselors_2021
+  #        ) %>%
    mutate(current_school = ifelse(grepl("Ascend", current_school),
                                   "KIPP Ascend Middle School", current_school)) %>%
      filter(current_school %in% input$plot_click[[3]]) %>%#add input$plot_click[[3]]

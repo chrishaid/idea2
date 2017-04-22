@@ -64,7 +64,6 @@ timevis::timevis(data = vis_data,
 }
 
 # function takes prepped student data and returns ggplot
-
 hs_app <- function(.data, school_n) {
 
   data_c <- .data %>%

@@ -83,11 +83,24 @@ flog.info("Compiling high school applications by school")
 mutate(school = ifelse( grepl("Ascend", school),
                         "KIPP Ascend Middle School", school))
 
+hs_2021 <- hs_applications %>%
+    filter(grepl("KIPP", school),
+           class %in% hs_class(8))
+
 ##student-level hs application status####
 
 middle_schools <- c("KIPP Ascend Middle School",
                     "KIPP Bloom College Prep",
                     "KIPP Create College Prep")
+
+##calculates high school graduation year based on current grade
+hs_class <- function(current_grade){
+              current_sy <- silounloadr::calc_academic_year(
+                                                            lubridate::today(),
+                                                            format = "second_year")
+              years_to_graduate <- 12 - current_grade
+              current_sy + years_to_graduate
+}
 
 flog.info("Preparing data for student-level bar plot - hs applications")
   students_data_bar <- hs_applications %>%
@@ -145,7 +158,9 @@ flog.info("Preparing data for student table - hs applications")
            current_school = currently_enrolled_school_c,
            hs_name = name.y.y,
            decision = application_status_c,
-           matriculation = matriculation_decision_c)
+           matriculation = matriculation_decision_c) %>%
+    filter(grepl("KIPP", current_school),
+           class %in% hs_class(8))
 
 flog.info("Preparing transitions data")
 transitions_by_student <- class_all %>%
@@ -521,6 +536,7 @@ save(
      contacts_details,
      contacts_summary,
      hs_applications,
+     hs_2021,
      students_data_bar,
      student_table,
      transitions_by_student,
