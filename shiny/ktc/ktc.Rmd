@@ -23,8 +23,8 @@ library(purrr)
 library(tidyr)
 library(janitor)
 library(forcats)
-library(prophet)
 library(formattable)
+
 
 
 enableBookmarking(store = "url")
@@ -162,7 +162,7 @@ contacts_filtered <- reactive({
                 )
 
 
-  out              
+  out
 
   })
 
@@ -243,7 +243,7 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
   summarise() %>%
   filter_(filter_cond,
           ~date_c >= start) %>%
-  ungroup()  
+  ungroup()
 
   first_success <- p %>%
     filter(!duplicated(contact_c),
@@ -758,7 +758,7 @@ plotOutput("hs_apps",
 hs_2021 <- hs_applications %>%
   filter(grepl("KIPP", school),
          class %in% 2021,
-         counselor %in% counselors_2021)          
+         counselor %in% counselors_2021)
 
 output$hs_apps <- renderPlot({
 
@@ -893,10 +893,11 @@ output$students_barplot <- renderPlot({
 })
 
 ```
+
 Match {data-navmenu="College" data-orientation=columns}
 ========================================================
 
-Column{data-width = 100}
+Column{data-width=500}
 ----------------------------------------------------------
 ### Match 2016
 
@@ -909,9 +910,10 @@ output$match_overview <- renderPlot({
 })
 
 ```
-Column {data-width = 100}
+
+Column {data-width=500}
 ----------------------------------------------------------
-### Student Match Plot
+### Student Match
 
 ```{r}
 output$student_match_plot <- renderPlot({
@@ -1017,7 +1019,7 @@ plot_student_m <- ggplot() +
     theme(panel.grid.minor = element_blank(),
           panel.grid.major.x = element_blank(),
           axis.ticks.x = element_blank(),
-          legend.position = "bottom") +
+          legend.position = "none") +
           labs(x = "College Acceptances",
                y = "Expected College Completion (%)")
 
@@ -1036,16 +1038,10 @@ if(lt == "undermatched"){
   plot_match
 })
 
-plotOutput("student_match_plot",
-            click = clickOpts("student_match_click"))
 ```
 
-Column {data-width = 300}
-----------------------------------------------------------
-### Student Table
 
 ```{r}
-formattableOutput("match_table")
 
 output$match_table <- renderFormattable({
 
@@ -1064,31 +1060,39 @@ output$match_table <- renderFormattable({
            name.x = ifelse(is.na(name.x), name, name.x)) %>%
   group_by(id) %>%
   mutate(max_ecc = ifelse(is.na(max_ecc), max(ecc, na.rm = TRUE),
-                          max_ecc)
+                          max_ecc),
+         type2 = stringr::str_extract(type, "\\d\\s.+")
                           ) %>%
   ungroup() %>%
-  mutate(ecc_diff = max_ecc - ecc) %>%
-    select(College = name.x,
-           ECC = ecc,
-           "ECC Difference" = ecc_diff,
-           Type = type,
-           school_id,
-           school_enroll,
-           school_matches,
-           undermatch
+  mutate(ecc_diff = (max_ecc - ecc)) %>%
+  select(College = name.x,
+         ECC = ecc,
+         ecc_diff,
+         #"Undermatch Amount" = ecc_diff,
+         Type = type2,
+         school_id,
+         school_enroll,
+         school_matches,
+         undermatch
            ) %>%
-    arrange(desc(ECC)) %>%
-    as.data.frame()
+  mutate(ECC = formattable::percent(ECC/100, digits=1)
+         #ecc_diff = ifelse(is.na(ecc_diff), "", ecc_diff)
+         #ecc_diff = formattable::percent(ecc_diff, digits = 1)#,
+         #
+         ) %>%
+  rename('Undermatch Amount' = ecc_diff) %>%
+  arrange(desc(ECC)) %>%
+  as.data.frame()
 
     formattable(student_table, align = c("l", "r", "r", "l"),
                 list(formatter("span", style = x ~
                                 style("border-style" = c("solid","5px"))),
                      College = formatter("span", style = ~
                                         style(display = "inline-block",
-                                              "border-radius" = "10px",
-                                              "padding-right" = "10px",
-                                              "padding-left" = "10px",
-                                              font.weight = "bold",
+                                              "border-radius" = "4px",
+                                              "padding-right" = "2px",
+                                              "padding-left" = "2px",
+                                              #font.weight = "bold",
                                               "background-color" =
                                               ifelse(is.na(ECC), "white",
                                               ifelse(undermatch ==
@@ -1096,14 +1100,33 @@ output$match_table <- renderFormattable({
                                                 "#255694", "#CFCCC1")),
                      color = ifelse(school_matches == "enroll", "#E27425",
                                    ifelse(school_matches == "match_school",
-                                          "#FEDA00", "white")))),
-                     'ECC Difference' = normalize_bar("burlywood",
-                                                      na.rm = TRUE),
+                                          "#FEDA00",
+                                          "white")))),
+                     'Undermatch Amount' = formatter("span", style = x ~
+                                                    style(
+                                                    display = "inline-block",
+                                                    direction = "rtl",
+                                                    "border-radius" = "4px",
+                                                    "padding-right" = "2px",
+                                                    width = percent(x/max(abs(x),
+                                                                na.rm = TRUE)),
+                                                    "background-color" =  ifelse(is.na(x), "white",
+                                                    "#C49A6C")
+                                                    )),
+                  #  normalize_bar("burlywood",
+                  #                na.rm = TRUE),
                      school_matches = FALSE,
                      school_enroll = FALSE,
                      undermatch = FALSE,
                      school_id = FALSE))
 })
+
+fillRow(flex = c(.45, .55),
+        plotOutput("student_match_plot",
+            click = clickOpts("student_match_click"),
+            height = "50%"),
+        formattableOutput("match_table", height = "20%")
+        )
 ```
 
 
@@ -1183,10 +1206,10 @@ class_sequences <- reactive({
           filter(!grepl("KIPP", type))
 
   if(input$noble) {
-    x <- x %>% mutate(type = type_noble)    
+    x <- x %>% mutate(type = type_noble)
     }
 
-  x <- x %>%  
+  x <- x %>%
       inner_join(school_types, by="type") %>%
   group_by(id) %>%
   arrange(id, start_date) %>%
@@ -1216,8 +1239,8 @@ output$sunburst <- renderSunburst({
             });
           d3.selectAll(endpaths).style('fill','none');
         }
-        "      
-  )    
+        "
+  )
 )
   })
 
@@ -1250,7 +1273,7 @@ output$hs_outcome <- renderPlot({
     filter(start_date == min(start_date)) %>%
     arrange(last_name, first_name)
 
-  p <- class_all_HS_placement %>%   
+  p <- class_all_HS_placement %>%
     ggplot() +
       geom_bar(aes(x = status_c, fill=status_c)
                ) +
@@ -1262,7 +1285,7 @@ output$hs_outcome <- renderPlot({
 
   if(input$noble) p <- p + facet_grid(~noble_2)
 
-  p  
+  p
 
   })
 

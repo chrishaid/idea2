@@ -222,6 +222,9 @@ match_plot <- function(match_data, accepted_data){
     theme(panel.grid.minor = element_blank(),
           panel.grid.major.x = element_blank(),
           axis.ticks.x = element_blank(),
-          legend.position = "bottom") +
+          legend.position = c(0.6, 0.08),
+          legend.margin = margin(t=-10, b=-10),
+          legend.box = "horizontal") +
     labs(x = "College Acceptances",
          y = "Expected College Completion (%)")
+}
