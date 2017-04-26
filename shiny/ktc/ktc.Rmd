@@ -218,10 +218,23 @@ Row {.tabset .tabset-fade}
 
 
 ```{r}
-plotOutput("unicontacts_flow",
-            brush = brushOpts(id = "plot_brush", direction = "x")
-          )
+fillCol(flex = c(.75, .25),
+  plotOutput("unicontacts_flow",
+             brush = brushOpts(id = "plot_brush", direction = "x")
+           ),
+  verbatimTextOutput("plot_info")
+)
 
+output$plot_info <- renderPrint({
+  input$plot_brush
+  })
+#output$unicontacts_table <- renderTable({
+#  validate(
+#    need(input$plot_brush != "", "Brush across the graphs to display the contact details.")
+#    )
+#  input$plot_brush
+
+#  })
 
 output$unicontacts_flow <-renderPlot({
 

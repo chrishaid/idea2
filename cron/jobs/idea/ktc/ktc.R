@@ -530,6 +530,63 @@ final_undermatch <- final_undermatch %>%
                      type),
             by = c("school_enroll" = "id"))
 
+flog.info("Creating Melt Denominator Dataset")
+
+##Summer Melt####
+denom_melt <- contact %>%
+  select(id,
+         f_name = first_name,
+         l_name = last_name,
+         class = kipp_hs_class_c,
+         ms_grad = kipp_ms_graduate_c) %>%
+  left_join(applications %>%
+  select(id = applicant_c,
+         school_id = school_c,
+         app_submission = application_submission_status_c,
+         app_status = application_status_c,
+         decision = matriculation_decision_c),
+         by = "id") %>%
+  left_join(account %>%
+  select(school_id = id,
+         school_name = name,
+         parent_id,
+         record_type_id = record_type_id,
+         type_4yr_2yr = type),
+         by ="school_id") %>%
+  left_join(record_type,
+            by = "record_type_id") %>%
+  filter(grepl("College", record_type))
+
+flog.info("Creating Enrolled Melt Dataset")
+##enrollment decision ####
+enrolled_melt <- contact %>%
+  select(id,
+         f_name = first_name,
+         l_name = last_name,
+         class = kipp_hs_class_c,
+         ms_grad = kipp_ms_graduate_c) %>%
+  filter(id %in% denom_melt$id) %>%
+  inner_join(enrollment_c %>%
+  select(id = student_c,
+         school_id = school_c,
+         enroll_status = status_c,
+         school_type = type_c,
+         enroll_last_mod = last_modified_date,
+         enroll_date = start_date_c),
+         by = "id") %>%
+  left_join(account %>%
+  select(school_id = id,
+         school_name = name,
+         parent_id,
+         record_type_id = record_type_id,
+         type_4yr_2yr = type),
+         by = "school_id") %>%
+  left_join(record_type,
+            by = "record_type_id") %>%
+  filter(grepl("College", school_type),
+         !grepl("Did Not", enroll_status)
+                     )
+
 flog.info("Saving Data")
 save(
      class_all,
@@ -552,6 +609,8 @@ save(
      goal_tbl,
      final_undermatch,
      final_accept,
+     denom_melt,
+     enrolled_melt,
      file = "/data/ktc.Rda"
      )
 
