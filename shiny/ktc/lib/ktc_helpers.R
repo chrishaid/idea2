@@ -227,3 +227,41 @@ match_plot <- function(match_data, accepted_data){
     labs(x = "College Acceptances",
          y = "Expected College Completion (%)")
 }
+
+##Create tables for summer melt plots
+melt_data <- function(melt_class, denom_data, enroll_data){
+  dm <- denom_data %>%
+    filter(class %in% melt_class,
+           grepl("Intent", decision))
+
+  e_date <- paste(melt_class,10,01, sep = "-")
+
+  em <- enroll_data%>%
+    filter(id %in% dm$id,
+           enroll_date <= ymd(e_date))
+
+  denom_4yr <- dm %>%
+    filter(grepl("4", type_4yr_2yr))
+
+  did_not_enroll  <- dm %>%
+    filter(!id %in% em$id) %>%
+    mutate(enrolled = FALSE)
+
+  melt_4_2 <- em %>%
+    filter(id %in% denom_4yr$id,
+           !grepl("4", type_4yr_2yr))
+
+  prop_melt <- dm %>%
+    left_join(did_not_enroll) %>%
+    mutate(enrolled = ifelse(is.na(enrolled), TRUE, enrolled)) %>%
+    group_by(class, enrolled) %>%
+    summarise(N= n()) %>%
+    mutate(prop = N / sum(N),
+           prop = round(prop,2) *100) %>%
+    arrange(desc(prop))
+
+    return(list(dm = dm,
+                did_not_enroll = did_not_enroll,
+                prop_melt = prop_melt,
+                melt_4_2 = melt_4_2))
+}
