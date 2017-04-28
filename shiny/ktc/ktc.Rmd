@@ -218,7 +218,7 @@ Row {.tabset .tabset-fade}
 
 
 ```{r}
-fillCol(flex = c(.5,.5),
+fillRow(flex = c(.6,.4),
         plotOutput("unicontacts_flow",
                    brush = brushOpts(id = "plot_brush",
                                      direction = "x")
@@ -336,8 +336,8 @@ if(!grepl("~", input$facet_by)) {
            aes(alpha = status_c),
            fill = '#440154FF') +
     scale_alpha_discrete(range = c(1/5, 1),
-                       guide = guide_legend(title= NULL)) +
-    facet_wrap(input$facet_by) +
+                         guide = guide_legend(title= NULL)) +
+    facet_wrap(input$facet_by, ncol = 1) +
     scale_x_datetime(date_labels = "%b %d",
                    date_breaks = "1 week") +
     theme_bw() +
@@ -402,22 +402,107 @@ if(!grepl("~", input$facet_by)) {
 
 ```{r}
 
-fillCol(flex = c(.7,.3),
+fillRow(flex = c(.7,.3),
         plotOutput("contacts_flow",
                   brush = brushOpts(id = "total_brush",
                                     direction = "x")
    ),
-       tableOutput("table_c_flow")
+   #verbatimTextOutput("test3")
+       DT::dataTableOutput("table_c_flow")
 )
-
-output$table_c_flow <- renderTable({
+output$test3 <- renderPrint({
+  input$total_brush
+  })
+output$table_c_flow <- DT::renderDataTable({
   validate(
     need(input$total_brush != "", "Brush across a graph to display contact totals.")
   )
+  if(!grepl("~", input$facet_by)) { # not class and counselor
 
-  ##unique successful
+    if(input$facet_by == "name.y") { #if counselor
+      filter_cond <- ~ name.y %in% input$total_brush$panelvar1
+      group_c <- "kipp_hs_class_c"
+      row_c <- "Class"
+    } else { # if class
+      filter_cond <- ~ kipp_hs_class_c %in% input$total_brush$panelvar1
+      group_c <- "name.y"
+      row_c <- "Counselor"
+    }
+
   c <- contacts_details %>%
-    filter(!is.na(status_c)) %>%
+    filter(!is.na(status_c),
+           kipp_hs_class_c %in% classes) %>%
+    select(date_c,
+           contact_c,
+           first_name.x,
+           last_name.x,
+           kipp_hs_class_c,
+           name.y,
+           status_c) %>%
+    filter_(~ date_c >= input$total_brush$xmin,
+            ~ date_c <= input$total_brush$xmax,
+            filter_cond)
+
+  u_successful <- c %>%
+    filter(status_c %in% "Successful") %>%
+    group_by_(group_c) %>%
+    distinct(contact_c, .keep_all = TRUE) %>%
+    #group_by(name.y) %>%
+    #filter(name.y %in% input$total_brush$panelvar1) %>%
+    summarise(N=n()) %>%
+    select_(group_c,
+            'Unique Successful' = ~ N)
+
+  u_outreach <-  c %>%
+    filter(status_c %in% "Outreach") %>%
+    group_by_(group_c) %>%
+    distinct(contact_c, .keep_all = TRUE) %>%
+    #group_by(name.y) %>%
+    #filter(name.y %in% input$total_brush$panelvar1) %>%
+    summarise(N=n()) %>%
+    select_(group_c,
+            'Unique Outreach' = ~ N)
+
+  c_fin <-  c %>%
+     #filter_(filter_cond) %>%
+    group_by_(#date_c,
+             group_c,
+             ~ status_c) %>%
+    summarise(N=n()) %>% # OR remove date_c group by to get totals
+    tidyr:: spread(status_c, N, fill = "") %>%
+    #rename(#Counselor = name.y,
+    #       #Class = kipp_hs_class_c,
+  #         'Total Successful' = Successful,
+  #         'Total Outreach' = Outreach) %>%
+    select_(group_c,
+            'Total Successful' = ~ Successful,
+            'Total Outreach' = ~ Outreach)
+
+ total_table <- c_fin %>%
+  left_join(u_successful, by = group_c) %>%
+  left_join(u_outreach, by = group_c) %>%
+  tidyr::replace_na(replace = list(`Unique Outreach` = "",
+                                   `Unique Successful` = "")) %>%
+  as.data.frame()
+
+ trans_table <- t(total_table)
+
+DT::datatable(trans_table[-1,] %>%
+                as.data.frame(),
+              colnames = as.vector(total_table[,1]),
+              extensions = c("Scroller", "FixedColumns"),
+              options = list(dom = "t",
+                             ordering = FALSE,
+                             scrollX = 400,
+                             scroller = TRUE,
+                             fixedColumns = list(leftColumns = 1))) %>%
+DT::formatStyle(0, fontWeight = "bold") %>%
+DT::formatStyle(c(1:nrow(total_table)), 'text-align' = 'right')
+
+} else{
+  c <- contacts_details %>%
+    filter(!is.na(status_c),
+           kipp_hs_class_c %in% classes) %>%
     select(date_c,
            contact_c,
            first_name.x,
@@ -426,37 +511,68 @@ output$table_c_flow <- renderTable({
            name.y,
            status_c) %>%
     filter(date_c >= input$total_brush$xmin,
-           date_c <= input$total_brush$xmax)
+           date_c <= input$total_brush$xmax,
+           name.y %in% input$total_brush$panelvar2,
+           kipp_hs_class_c %in% input$total_brush$panelvar1)
 
-  u_successful <- c %>%
-    filter(status_c %in% "Successful") %>%
-    distinct(contact_c, .keep_all = TRUE) %>%
-    #group_by(name.y) %>%
-    filter(name.y %in% input$total_brush$panelvar1) %>%
-    summarise(N=n()) %>%
-    select('Unique Successful' = N)
+u_successful <- c %>%
+  filter(status_c %in% "Successful") %>%
+  group_by(name.y) %>%
+  distinct(contact_c, .keep_all = TRUE) %>%
+  summarise(N=n()) %>%
+  select(name.y,
+        'Unique Successful' =  N)
 
-  u_outreach <-  c %>%
-    filter(status_c %in% "Outreach") %>%
-    distinct(contact_c, .keep_all = TRUE) %>%
-    #group_by(name.y) %>%
-    filter(name.y %in% input$total_brush$panelvar1) %>%
-    summarise(N=n()) %>%
-    select('Unique Outreach' = N)
+u_outreach <-  c %>%
+  filter(status_c %in% "Outreach") %>%
+  group_by(name.y) %>%
+  distinct(contact_c, .keep_all = TRUE) %>%
+  summarise(N=n()) %>%
+  select(name.y,
+         'Unique Outreach' = N)
 
-  c_fin <-  c %>%
-     filter(name.y %in% input$total_brush$panelvar1) %>%
-    group_by(#date_c,
-             name.y,
-             status_c) %>%
-    summarise(N=n()) %>% # OR remove date_c group by to get totals
-    tidyr:: spread(status_c, N) %>%
-    rename(Counselor = name.y,
-           'Total Successful' = Successful,
-           'Total Outreach' = Outreach)
+c_fin <-  c %>%
+  group_by(name.y,
+           status_c) %>%
+  summarise(N=n()) %>%
+  tidyr:: spread(status_c, N, fill = "")
 
- total_table <- bind_cols(c_fin, u_outreach, u_successful)
- total_table
+  if(!"Outreach" %in% colnames(c_fin)){
+      c_fin <- c_fin %>%
+        mutate('Total Outreach' = "") %>%
+        select(name.y,
+               'Total Successful' = Successful,
+               `Total Outreach`)
+    } else {
+      c_fin <- c_fin %>%
+      select(name.y,
+             'Total Successful' = Successful,
+             'Total Outreach' = Outreach)
+    }
+
+
+total_table <- c_fin %>%
+ left_join(u_successful, by = "name.y") %>%
+ left_join(u_outreach, by = "name.y") %>%
+ tidyr::replace_na(replace = list(`Unique Outreach` = "",
+                                  `Unique Successful` = "")) %>%
+ as.data.frame()
+
+trans_table <- t(total_table)
+
+DT::datatable(trans_table[-1,] %>%
+               as.data.frame(),
+             colnames = "",
+             extensions = c("Scroller", "FixedColumns"),
+             options = list(dom = "t",
+                            ordering = FALSE,
+                            scrollX = 400,
+                            scroller = TRUE,
+                            fixedColumns = list(leftColumns = 1))) %>%
+DT::formatStyle(0, fontWeight = "bold") %>%
+DT::formatStyle(c(1:nrow(total_table)), 'text-align' = 'right')
+
+}
  })
 
 output$contacts_flow <-renderPlot({
@@ -480,18 +596,20 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
           ) %>%
     ggplot(aes(x=date_c, y=N)) +
       geom_bar(aes(
-                   fill = N >= contact_goal_7/7),
+                    fill = "n"),
                color = "white",
                stat="identity") +
-      facet_wrap(input$facet_by) +
-      viridis::scale_fill_viridis("Daily contacts > 2",
+       geom_hline(yintercept = 2,
+                  color = "#FDE725FF") +
+      facet_wrap(input$facet_by, ncol = 1) +
+      viridis::scale_fill_viridis("",
                                   option = "D",
                                   discrete= TRUE,
-                                  direction = -1) +
+                                  direction = 1) +
       scale_x_datetime(date_labels = "%b %d",
                        date_breaks = "1 week") +
       theme_bw() +
-      theme(legend.position = "bottom",
+      theme(legend.position = "none",
             axis.text.x = element_text(angle=45, hjust = 1)) +
       labs(y = "Number of contacts",
            x = "Date")
@@ -1018,8 +1136,6 @@ p(strong(h4(textOutput("text")))),
 tableOutput("students_table")
 )
 
-
-
 output$text <- renderText({
   req(input$student_click)
 
@@ -1348,19 +1464,23 @@ m_data <- reactive({
     c1 <- melt_data(input$melt_class[1], denom_melt, enrolled_melt)
     c2 <- melt_data(input$melt_class[2], denom_melt, enrolled_melt)
     m_data <- list()
-    for(i in 1:4){
+    for(i in 1:6){
       m_data[[i]] <- bind_rows(c1[i], c2[i])
     }
-    names(m_data) <- c("dm", "did_not_enroll", "prop_melt", "melt_4_2")
+    names(m_data) <- c("dm", "did_not_enroll",
+                       "prop_melt", "melt_4_2",
+                       "denom_4yr", "prop_melt_4_2")
   } else {
     c1 <- melt_data(input$melt_class[1], denom_melt, enrolled_melt)
     c2 <- melt_data(input$melt_class[2], denom_melt, enrolled_melt)
     c3 <- melt_data(input$melt_class[3], denom_melt, enrolled_melt)
     m_data <- list()
-      for(i in 1:4){
+      for(i in 1:6){
         m_data[[i]] <- bind_rows(c1[i], c2[i], c3[i])
       }
-      names(m_data) <- c("dm", "did_not_enroll", "prop_melt", "melt_4_2")
+      names(m_data) <- c("dm", "did_not_enroll",
+                         "prop_melt", "melt_4_2",
+                         "denom_4yr", "prop_melt_4_2")
   }
   m_data
 })
@@ -1419,7 +1539,7 @@ output$complete_melt_table <- renderTable({
   select(Name,
          Class = class)
   })
-output$test_info <- renderPrint({input$c_melt_click})
+
 fillRow(flex = c(.8, .2),
         plotOutput("complete_melt"),
         tableOutput("complete_melt_table")
@@ -1429,7 +1549,67 @@ fillRow(flex = c(.8, .2),
 ###4-year to 2-year Melt {.no-padding}
 
 ```{r}
+output$melt_4_2 <- renderPlot({
+  m_data()$denom_4yr %>%
+  left_join(m_data()$melt_4_2,
+            by = c("id",
+                   "f_name",
+                   "l_name",
+                   "class")) %>%
+  mutate(melt = ifelse(is.na(melt), FALSE, melt),
+         melt = factor(melt, levels = c("TRUE", "FALSE"))) %>%
+  ggplot() +
+  geom_bar(aes(x= class,
+              fill = melt),
+           stat = "count",
+           color = "#255694",
+           width = .5) +
+  geom_text(data = m_data()$prop_melt_4_2 %>%
+              group_by(class) %>%
+              mutate(display = max(N)) %>%
+              filter(melt),
+            aes(x = class,
+                y = display,
+                label = sprintf("%s%%", prop)),
+            color = "#255694",
+            fontface = "bold",
+            hjust = -1) +
+  geom_text(data = m_data()$prop_melt_4_2 %>%
+              group_by(class) %>%
+              mutate(display = max(N)) %>%
+              filter(is.na(melt)),
+            aes(x = class,
+                y = display,
+                label = sprintf("%s%%", prop)),
+            color = "white",
+            fontface = "bold",
+            hjust = 1) +
+  scale_fill_manual("", values = c("FALSE" = "#255694",
+                                   "TRUE" = NA),
+                    breaks = c("FALSE",
+                               "TRUE"),
+                    labels = c("Enrollment: 4-year",
+                               "Enrollment: 2-year")) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  labs(x = "",
+       y = "")
+  })
 
+  output$melt_4_2_table <- renderTable({
+    m_data()$melt_4_2 %>%
+    filter(class %in% input$melt_class) %>%
+    arrange(desc(as.numeric(class)), l_name) %>%
+    tidyr::unite(Name, f_name, l_name, sep = " ") %>%
+    select(Name,
+           Class = class)
+    })
+
+fillRow(flex = c(.8, .2),
+        plotOutput("melt_4_2"),
+        tableOutput("melt_4_2_table")
+  )
 
 ```
 

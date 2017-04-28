@@ -236,9 +236,14 @@ melt_data <- function(melt_class, denom_data, enroll_data){
 
   e_date <- paste(melt_class,10,01, sep = "-")
 
-  em <- enroll_data%>%
+  em <- enroll_data %>%
     filter(id %in% dm$id,
-           enroll_date <= ymd(e_date))
+           enroll_date <= ymd(e_date)) %>%
+    group_by(id,
+            f_name,
+            l_name) %>%
+    filter(enroll_date == min(enroll_date)) %>%
+    ungroup()
 
   denom_4yr <- dm %>%
     filter(grepl("4", type_4yr_2yr))
@@ -249,7 +254,8 @@ melt_data <- function(melt_class, denom_data, enroll_data){
 
   melt_4_2 <- em %>%
     filter(id %in% denom_4yr$id,
-           !grepl("4", type_4yr_2yr))
+           !grepl("4", type_4yr_2yr)) %>%
+    mutate(melt = TRUE)
 
   prop_melt <- dm %>%
     left_join(did_not_enroll) %>%
@@ -260,8 +266,21 @@ melt_data <- function(melt_class, denom_data, enroll_data){
            prop = round(prop,2) *100) %>%
     arrange(desc(prop))
 
+  prop_melt_4_2 <- denom_4yr %>%
+    left_join(melt_4_2,
+              by = c("id",
+                     "f_name",
+                     "l_name",
+                     "class")) %>%
+  group_by(class, melt) %>%
+  summarise(N = n()) %>%
+  mutate(prop = N / sum(N),
+         prop = round(prop,2) *100)
+
     return(list(dm = dm,
                 did_not_enroll = did_not_enroll,
                 prop_melt = prop_melt,
-                melt_4_2 = melt_4_2))
+                melt_4_2 = melt_4_2,
+                denom_4yr = denom_4yr,
+                prop_melt_4_2 = prop_melt_4_2))
 }
