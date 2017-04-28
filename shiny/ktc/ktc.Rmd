@@ -48,8 +48,8 @@ statuses <- unique(contacts_summary$status_c) %>% discard(is.na)
  days_elapsed_30 <- todays_date - days(30)
  days_elapsed_90 <- todays_date - days(90)
 
- start <- ymd("2017-01-01")
- daily <- 739 / (96 * 6)
+ start <- ymd("2017-04-08")
+ daily <- 739 / (69 * 6)
  contact_goal_7 <- daily * 7 #15
  contact_goal_30 <- daily * 30 #as.integer(contact_goal_7 / 7 * 30)
  contact_goal <- 739 / 6
@@ -105,12 +105,12 @@ selectInput("counselor",
             "Counselors",
             choices = counselors,
             multiple = TRUE,
-            selected = c(#"Catrina Thomas",
-                         "China Hill",
+            selected = c("Catrina Thomas",
+                         #"China Hill",
                          #"Deja Manuel",
                          "Jamie Hawley",
-                         #"Margarita Herrera",
-                         "Pete Gooden"))
+                         "Margarita Herrera"))
+                         #"Pete Gooden"))
 checkboxGroupInput("status",
          "Status type",
          choices = c("Successful", "Outreach"),
@@ -177,7 +177,7 @@ contacts_filtered <- reactive({
 ```{r}
 renderValueBox({
   valueBox(value = contacts_filtered()$begin,
-           caption = sprintf("Contacts since Jan 1st (goal: %s)",
+           caption = sprintf("Contacts since Apr 8th (goal: %s)",
                              floor(contact_goal*length(input$counselor))),
     icon = "fa-calendar-check-o",
     color = ifelse(contacts_filtered()$begin < contact_goal*length(input$counselor), "warning", "primary"))
@@ -249,7 +249,7 @@ data_unique_contacts <- reactive({
             name.y,
             kipp_hs_class_c) %>%
    summarise() %>%
-   filter_(~ date_c >= ymd("2017-01-01")) %>%
+   filter_(~ date_c >= ymd("2017-04-08")) %>%
    ungroup()
 
   first_success <- p %>%

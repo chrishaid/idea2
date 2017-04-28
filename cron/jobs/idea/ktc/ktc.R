@@ -565,7 +565,7 @@ enrolled_melt <- contact %>%
          l_name = last_name,
          class = kipp_hs_class_c,
          ms_grad = kipp_ms_graduate_c) %>%
-  filter(id %in% denom_melt$id) %>%
+#  filter(id %in% denom_melt$id) %>%
   inner_join(enrollment_c %>%
   select(id = student_c,
          school_id = school_c,
