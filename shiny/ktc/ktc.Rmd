@@ -23,6 +23,8 @@ library(purrr)
 library(tidyr)
 library(janitor)
 library(forcats)
+library(formattable)
+
 
 
 enableBookmarking(store = "url")
@@ -39,15 +41,15 @@ counselors <- unique(contacts_summary$name.y)
 
 statuses <- unique(contacts_summary$status_c) %>% discard(is.na)
 
-counselors_2021 <- c("Catrina Thomas", "China Hill", "Tiffany Harrell")
+# counselors_2021 <- c("Catrina Thomas", "China Hill", "Tiffany Harrell")
 
  todays_date <- today()
  days_elapsed_7 <- todays_date - days(7)
  days_elapsed_30 <- todays_date - days(30)
  days_elapsed_90 <- todays_date - days(90)
 
- start <- ymd("2017-01-01")
- daily <- 739 / (96 * 6)
+ start <- ymd("2017-04-08")
+ daily <- 739 / (69 * 6)
  contact_goal_7 <- daily * 7 #15
  contact_goal_30 <- daily * 30 #as.integer(contact_goal_7 / 7 * 30)
  contact_goal <- 739 / 6
@@ -104,11 +106,11 @@ selectInput("counselor",
             choices = counselors,
             multiple = TRUE,
             selected = c("Catrina Thomas",
-                         "China Hill",
-                         "Deja Manuel",
+                         #"China Hill",
+                         #"Deja Manuel",
                          "Jamie Hawley",
-                         "Margarita Herrera",
-                         "Pete Gooden"))
+                         "Margarita Herrera"))
+                         #"Pete Gooden"))
 checkboxGroupInput("status",
          "Status type",
          choices = c("Successful", "Outreach"),
@@ -160,7 +162,7 @@ contacts_filtered <- reactive({
                 )
 
 
-  out              
+  out
 
   })
 
@@ -175,7 +177,7 @@ contacts_filtered <- reactive({
 ```{r}
 renderValueBox({
   valueBox(value = contacts_filtered()$begin,
-           caption = sprintf("Contacts since Jan 1st (goal: %s)",
+           caption = sprintf("Contacts since Apr 8th (goal: %s)",
                              floor(contact_goal*length(input$counselor))),
     icon = "fa-calendar-check-o",
     color = ifelse(contacts_filtered()$begin < contact_goal*length(input$counselor), "warning", "primary"))
@@ -216,32 +218,39 @@ Row {.tabset .tabset-fade}
 
 
 ```{r}
-plotOutput("unicontacts_flow",
-            brush = brushOpts(id = "plot_brush", direction = "x")
-          )
+fillRow(flex = c(.6,.4),
+        plotOutput("unicontacts_flow",
+                   brush = brushOpts(id = "plot_brush",
+                                     direction = "x")
+   ),
+        DT::dataTableOutput("unicontacts_table")
+)
 
-
-output$unicontacts_flow <-renderPlot({
-
-if(!grepl("~", input$facet_by)) { # not class and counselor
+data_unique_contacts <- reactive({
 
   if(input$facet_by == "name.y") { #if counselor
     filter_cond <- ~ name.y %in% input$counselor
-
   } else { # if class
     filter_cond <- ~ kipp_hs_class_c %in% input$class
-
   }
-
-  # Class or counselor plot
   p <- contacts_details %>%
-  filter(kipp_hs_class_c %in% classes,
-         status_c %in% statuses) %>%
-  group_by_("date_c", "status_c", "contact_c", input$facet_by) %>%
-  summarise() %>%
-  filter_(filter_cond,
-          ~date_c >= start) %>%
-  ungroup()  
+   filter_(~kipp_hs_class_c %in% classes,
+           ~status_c %in% statuses,
+           filter_cond) %>%
+   tidyr::unite(col = first_last,
+                first_name.x,
+                last_name.x,
+                sep = " ",
+                remove=TRUE) %>%
+   group_by(date_c,
+            status_c,
+            contact_c,
+            first_last,
+            name.y,
+            kipp_hs_class_c) %>%
+   summarise() %>%
+   filter_(~ date_c >= ymd("2017-04-08")) %>%
+   ungroup()
 
   first_success <- p %>%
     filter(!duplicated(contact_c),
@@ -256,7 +265,69 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
     filter(status_c %in% "Successful") %>%
     semi_join(first_outreach, by="contact_c")
 
-  u_table <- bind_rows(first_success, first_outreach, outreach_success) %>%
+  return(
+    bind_rows(first_success, first_outreach, outreach_success) %>%
+      arrange(date_c)
+  )
+})
+
+output$unicontacts_table <- DT::renderDataTable({
+
+  validate(
+    need(input$plot_brush != "",
+         "Brush across a graph to display contact details.")
+  )
+  if(!grepl("~", input$facet_by)) {
+
+  if(input$facet_by == "name.y") { #if counselor
+    filter_cond <- ~ name.y %in% input$plot_brush$panelvar1
+    select_col <- ~ Class
+
+  } else { # if class
+    filter_cond <- ~ kipp_hs_class_c %in% input$plot_brush$panelvar1
+    select_col <- ~ Counselor
+  }
+
+  dt_unique <- data_unique_contacts() %>%
+    filter_(filter_cond,
+            ~ date_c >= input$plot_brush$xmin,
+            ~ date_c <= input$plot_brush$xmax) %>%
+    rename(Name = first_last,
+           Class = kipp_hs_class_c,
+           Counselor = name.y,
+           Status = status_c) %>%
+    mutate(Date = as.character(as_date(as_datetime(date_c)))) %>%
+    select_(~ Date,
+            ~ Name,
+            select_col,
+            ~ Status)
+
+  } else {
+   dt_unique <-  data_unique_contacts() %>%
+    filter_(~ date_c >= input$plot_brush$xmin,
+            ~ date_c <= input$plot_brush$xmax) %>%
+    mutate(Date = as.character(as_date(as_datetime(date_c)))) %>%
+    select(Date,
+           Name = first_last,
+           Status = status_c)
+
+  }
+
+ DT:: datatable(dt_unique,
+                rownames = FALSE,
+                extensions = "Scroller",
+                options = list(
+                  #bPaginate = FALSE,
+                  scrollY = 400,
+                  scroller = TRUE
+                  ))
+})
+
+output$unicontacts_flow <-renderPlot({
+
+if(!grepl("~", input$facet_by)) {
+
+  u_table <- data_unique_contacts() %>%
     group_by_("date_c", input$facet_by, "status_c") %>%
     summarise(N=n()) %>%
     ggplot(aes(x = date_c, y = N)) +
@@ -265,8 +336,8 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
            aes(alpha = status_c),
            fill = '#440154FF') +
     scale_alpha_discrete(range = c(1/5, 1),
-                       guide = guide_legend(title= NULL)) +
-    facet_wrap(input$facet_by) +
+                         guide = guide_legend(title= NULL)) +
+    facet_wrap(input$facet_by, ncol = 1) +
     scale_x_datetime(date_labels = "%b %d",
                    date_breaks = "1 week") +
     theme_bw() +
@@ -331,10 +402,178 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
 
 ```{r}
 
-plotOutput("contacts_flow",
-            brush = brushOpts(id = "plot_brush", direction = "x")
-          )
+fillRow(flex = c(.7,.3),
+        plotOutput("contacts_flow",
+                  brush = brushOpts(id = "total_brush",
+                                    direction = "x")
+   ),
+   #verbatimTextOutput("test3")
+       DT::dataTableOutput("table_c_flow")
+)
+output$test3 <- renderPrint({
+  input$total_brush
+  })
+output$table_c_flow <- DT::renderDataTable({
+  validate(
+    need(input$total_brush != "", "Brush across a graph to display contact totals.")
+  )
+  if(!grepl("~", input$facet_by)) { # not class and counselor
 
+    if(input$facet_by == "name.y") { #if counselor
+      filter_cond <- ~ name.y %in% input$total_brush$panelvar1
+      group_c <- "kipp_hs_class_c"
+      row_c <- "Class"
+    } else { # if class
+      filter_cond <- ~ kipp_hs_class_c %in% input$total_brush$panelvar1
+      group_c <- "name.y"
+      row_c <- "Counselor"
+    }
+
+  c <- contacts_details %>%
+    filter(!is.na(status_c),
+           kipp_hs_class_c %in% classes) %>%
+    select(date_c,
+           contact_c,
+           first_name.x,
+           last_name.x,
+           kipp_hs_class_c,
+           name.y,
+           status_c) %>%
+    filter_(~ date_c >= input$total_brush$xmin,
+            ~ date_c <= input$total_brush$xmax,
+            filter_cond)
+
+  u_successful <- c %>%
+    filter(status_c %in% "Successful") %>%
+    group_by_(group_c) %>%
+    distinct(contact_c, .keep_all = TRUE) %>%
+    #group_by(name.y) %>%
+    #filter(name.y %in% input$total_brush$panelvar1) %>%
+    summarise(N=n()) %>%
+    select_(group_c,
+            'Unique Successful' = ~ N)
+
+  u_outreach <-  c %>%
+    filter(status_c %in% "Outreach") %>%
+    group_by_(group_c) %>%
+    distinct(contact_c, .keep_all = TRUE) %>%
+    #group_by(name.y) %>%
+    #filter(name.y %in% input$total_brush$panelvar1) %>%
+    summarise(N=n()) %>%
+    select_(group_c,
+            'Unique Outreach' = ~ N)
+
+  c_fin <-  c %>%
+     #filter_(filter_cond) %>%
+    group_by_(#date_c,
+             group_c,
+             ~ status_c) %>%
+    summarise(N=n()) %>% # OR remove date_c group by to get totals
+    tidyr:: spread(status_c, N, fill = "") %>%
+    #rename(#Counselor = name.y,
+    #       #Class = kipp_hs_class_c,
+  #         'Total Successful' = Successful,
+  #         'Total Outreach' = Outreach) %>%
+    select_(group_c,
+            'Total Successful' = ~ Successful,
+            'Total Outreach' = ~ Outreach)
+
+ total_table <- c_fin %>%
+  left_join(u_successful, by = group_c) %>%
+  left_join(u_outreach, by = group_c) %>%
+  tidyr::replace_na(replace = list(`Unique Outreach` = "",
+                                   `Unique Successful` = "")) %>%
+  as.data.frame()
+
+ trans_table <- t(total_table)
+
+DT::datatable(trans_table[-1,] %>%
+                as.data.frame(),
+              colnames = as.vector(total_table[,1]),
+              extensions = c("Scroller", "FixedColumns"),
+              options = list(dom = "t",
+                             ordering = FALSE,
+                             scrollX = 400,
+                             scroller = TRUE,
+                             fixedColumns = list(leftColumns = 1))) %>%
+DT::formatStyle(0, fontWeight = "bold") %>%
+DT::formatStyle(c(1:nrow(total_table)), 'text-align' = 'right')
+
+} else{
+  c <- contacts_details %>%
+    filter(!is.na(status_c),
+           kipp_hs_class_c %in% classes) %>%
+    select(date_c,
+           contact_c,
+           first_name.x,
+           last_name.x,
+           kipp_hs_class_c,
+           name.y,
+           status_c) %>%
+    filter(date_c >= input$total_brush$xmin,
+           date_c <= input$total_brush$xmax,
+           name.y %in% input$total_brush$panelvar2,
+           kipp_hs_class_c %in% input$total_brush$panelvar1)
+
+u_successful <- c %>%
+  filter(status_c %in% "Successful") %>%
+  group_by(name.y) %>%
+  distinct(contact_c, .keep_all = TRUE) %>%
+  summarise(N=n()) %>%
+  select(name.y,
+        'Unique Successful' =  N)
+
+u_outreach <-  c %>%
+  filter(status_c %in% "Outreach") %>%
+  group_by(name.y) %>%
+  distinct(contact_c, .keep_all = TRUE) %>%
+  summarise(N=n()) %>%
+  select(name.y,
+         'Unique Outreach' = N)
+
+c_fin <-  c %>%
+  group_by(name.y,
+           status_c) %>%
+  summarise(N=n()) %>%
+  tidyr:: spread(status_c, N, fill = "")
+
+  if(!"Outreach" %in% colnames(c_fin)){
+      c_fin <- c_fin %>%
+        mutate('Total Outreach' = "") %>%
+        select(name.y,
+               'Total Successful' = Successful,
+               `Total Outreach`)
+    } else {
+      c_fin <- c_fin %>%
+      select(name.y,
+             'Total Successful' = Successful,
+             'Total Outreach' = Outreach)
+    }
+
+
+total_table <- c_fin %>%
+ left_join(u_successful, by = "name.y") %>%
+ left_join(u_outreach, by = "name.y") %>%
+ tidyr::replace_na(replace = list(`Unique Outreach` = "",
+                                  `Unique Successful` = "")) %>%
+ as.data.frame()
+
+trans_table <- t(total_table)
+
+DT::datatable(trans_table[-1,] %>%
+               as.data.frame(),
+             colnames = "",
+             extensions = c("Scroller", "FixedColumns"),
+             options = list(dom = "t",
+                            ordering = FALSE,
+                            scrollX = 400,
+                            scroller = TRUE,
+                            fixedColumns = list(leftColumns = 1))) %>%
+DT::formatStyle(0, fontWeight = "bold") %>%
+DT::formatStyle(c(1:nrow(total_table)), 'text-align' = 'right')
+
+}
+ })
 
 output$contacts_flow <-renderPlot({
 
@@ -357,18 +596,20 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
           ) %>%
     ggplot(aes(x=date_c, y=N)) +
       geom_bar(aes(
-                   fill = N >= contact_goal_7/7),
+                    fill = "n"),
                color = "white",
                stat="identity") +
-      facet_wrap(input$facet_by) +
-      viridis::scale_fill_viridis("Daily contacts > 2",
+       geom_hline(yintercept = 2,
+                  color = "#FDE725FF") +
+      facet_wrap(input$facet_by, ncol = 1) +
+      viridis::scale_fill_viridis("",
                                   option = "D",
                                   discrete= TRUE,
-                                  direction = -1) +
+                                  direction = 1) +
       scale_x_datetime(date_labels = "%b %d",
                        date_breaks = "1 week") +
       theme_bw() +
-      theme(legend.position = "bottom",
+      theme(legend.position = "none",
             axis.text.x = element_text(angle=45, hjust = 1)) +
       labs(y = "Number of contacts",
            x = "Date")
@@ -410,6 +651,7 @@ if(!grepl("~", input$facet_by)) { # not class and counselor
 
 ```
 
+
 Projection {data-navmenu="Contacts"}
 ========================================================
 
@@ -421,9 +663,21 @@ radioButtons("line_proj", "Show",
                          "Projection (2017 Data)" = "2017",
                          "Projection (Historical Data)" = "prophet",
                          "All" = "all"),
-             selected = "goal",
+             selected = "all",
              inline = FALSE)
+dateInput("proj_date", "End Date",
+          value = "2017-04-07",
+          max = "2017-04-07",
+          min = "2017-01-01",
+          format = "yyyy-mm-dd",
+          startview = "month")
+
 ```
+
+Data that fall within January 1, 2017 and **End Date** will be included in the model Projection (End Date). Choose a date to see how the projection changes over time.
+
+
+The Projection (Historical Data) model includes data from February 4, 2010 through February 28, 2017.
 
 Row
 ----------------------------------------------------------
@@ -438,20 +692,34 @@ plotOutput("proj_plot",
 ```{r}
 
 output$proj_plot <-renderPlot({
+  success_csum <- df_final_csum %>%
+    filter(ds >= ymd("2017-01-01") &
+    ds <= ymd("2017-04-07"))
+
+  success_csum_date <- df_final_csum %>%
+    filter(ds >= ymd("2017-01-01") &
+    ds <= input$proj_date)
+
+  q_mod_date <- lm(y ~ I(as.numeric(ds)) + I(as.numeric(ds)^2),
+              data = success_csum_date)
+
+  goal_tbl$qmod_date <- predict(q_mod_date, goal_tbl[,"ds"])
+
   plotdf <- prophet_dat %>%
     filter(ds >= ymd("2017-01-01"),
            ds < ymd("2017-04-08")) %>%
     mutate(ds = as.POSIXct(ds))
 
   p_graph <-
-     ggplot(data = success_csum, aes(x = ds, y = y)) +
+     ggplot(data = success_csum_date, aes(x = ds, y = y)) +
      geom_step(aes(color = "Total to date"),
                stat = "identity",
                position = "identity") +
     geom_line(data = goal_tbl, aes(x=ds, y= goal_n,
                                    color = "Goal"),
                                    stat = "identity") +
-    geom_vline(xintercept = as.numeric(as.POSIXct("2017-04-07")), color = "#C83E73FF") +
+    geom_vline(xintercept = as.numeric(as.POSIXct("2017-04-07")),
+               color = "#C83E73FF") +
     scale_x_datetime(date_labels = "%b %d",
                      date_breaks = "1 week",
                      limits = as.POSIXct(c("2017-01-01", "2017-04-07"))) +
@@ -460,7 +728,8 @@ output$proj_plot <-renderPlot({
                                   "Goal" = "#451077FF",
                                   "Projection (historical)" = "#FEC98DFF",
                                   "Projection (2017)" = "#238A8DFF",
-                                  "Projection (week 6)" = "steelblue1" ),
+                                  "Projection (week 6)" = "steelblue1",
+                                  "Projection (End Date)" = "red" ),
                        guide = "legend") +
     theme_bw() +
     theme(legend.position = "top") +
@@ -499,7 +768,42 @@ output$proj_plot <-renderPlot({
               fill = "#FEC98DFF"
                             )
 
-  } else {
+  }
+  if(input$proj_date != ymd("2017-04-07") &
+     input$line_proj %in% "2017"){
+     p_graph <- p_graph +
+       geom_line(data = goal_tbl,
+                 aes(x=ds, y= qmod_date,
+                     color = "Projection (End Date)"),
+                 stat = "identity",
+                 linetype = 2) +
+       guides(colour = guide_legend(override.aes = list(
+                                    linetype=c(1,1,2,1))))
+   }
+    if(input$proj_date != ymd("2017-04-07") &
+      input$line_proj %in% "prophet"){
+     p_graph <- p_graph +
+       geom_line(data = goal_tbl,
+                 aes(x=ds, y= qmod_date,
+                     color = "Projection (End Date)"),
+                 stat = "identity",
+                 linetype = 2) +
+       guides(colour = guide_legend(override.aes = list(
+                                    linetype=c(1,2,1,1))))
+    }
+   if(input$proj_date != ymd("2017-04-07") &
+      input$line_proj %in% "all"){
+     p_graph <- p_graph +
+       geom_line(data = goal_tbl,
+                 aes(x=ds, y= qmod_date,
+                     color = "Projection (End Date)"),
+                 stat = "identity",
+                 linetype = 2) +
+       guides(colour = guide_legend(override.aes = list(
+                                    linetype=c(1,1,2,1,1))))
+      }
+
+  else {
    p_graph <- p_graph
   }
 
@@ -748,15 +1052,15 @@ HS Application Submission {data-orientation=columns}
 
 Overall Submissions Column
 ------------------------------------------------------------
-### Application Status
+### Students with one or more submitted applications
 ```{r}
 plotOutput("hs_apps",
             click = clickOpts(id = "plot_click", clip = TRUE))
 
-hs_2021 <- hs_applications %>%
-  filter(grepl("KIPP", school),
-         class %in% 2021,
-         counselor %in% counselors_2021)          
+#hs_2021 <- hs_applications %>%
+#  filter(grepl("KIPP", school),
+#         class %in% hs_class(8))
+         #counselor %in% counselors_2021)
 
 output$hs_apps <- renderPlot({
 
@@ -772,11 +1076,15 @@ hs_2021 %>%
   ggplot(aes(x=fct_rev(status), y = N)) +
   geom_bar(aes(fill= status),
            show.legend = TRUE,
-           stat="identity") +
+           stat="identity",
+           width = .5) +
   facet_wrap("school", nrow = 1) +
-  viridis::scale_fill_viridis(discrete = T, direction = -1, option = "D",
+  scale_fill_manual("", values = c("submitted" = "#440154FF",
+                                   "prog_wish" = "#20A387FF",
+                                   "ns" = "#FDE725FF"),
                      breaks = c("prog_wish", "ns", "submitted"),
-                     labels = c("In Progress/Wishlist", "No Submission", "Submitted"))+
+                     labels = c("In Progress/Wishlist", "No Submission", "Submitted")
+                     )+
   scale_x_discrete(breaks = NULL) +
   labs(x=NULL, y="Number of Students", fill = NULL) +
   theme_bw() +
@@ -794,7 +1102,7 @@ hs_2021 %>%
 
 ```{r}
 name_header <- reactive({
-  req(input$student_click)
+  # req(input$student_click)
 
 names_ordered <- students_data_bar %>%
     ungroup %>%
@@ -829,24 +1137,26 @@ tableOutput("students_table")
 )
 
 output$text <- renderText({
-  if(is.null(input$student_click)) {
- "Click on the student bar plot to see a student's high school application history."
-} else {
- paste0(name_header()$names, ", Class of ", name_header()$class)
-}
+  req(input$student_click)
+
+paste0(name_header()$names, ", Class of ", name_header()$class)
+
 })
 
  output$students_table <- renderTable({
-   req(input$student_click)
-
+   #req(input$student_click)
+   validate(
+     need(input$student_click != "", "Click on the student bar plot to see a student's high school application history.")
+   )
 plot_student_id <- name_header()$student_id
 
 plot_student_name <- name_header()$names_ordered[[1]][plot_student_id]
 
 student_table %>%
-   filter(grepl("KIPP", current_school),
-          class %in% 2021,
-          counselor %in% counselors_2021) %>%
+  # filter(grepl("KIPP", current_school),
+  #        class %in% hs_class(8)
+  #        #counselor %in% counselors_2021
+  #        ) %>%
    mutate(current_school = ifelse(grepl("Ascend", current_school),
                                   "KIPP Ascend Middle School", current_school)) %>%
      filter(current_school %in% input$plot_click[[3]]) %>%#add input$plot_click[[3]]
@@ -870,7 +1180,7 @@ Schools
 ### School View
 ```{r}
 fillCol(flex = c(.07,.93),
-#test2
+
 p(strong(h4(textOutput("text2")))),
 
 plotOutput("students_barplot",
@@ -878,20 +1188,430 @@ plotOutput("students_barplot",
           )
 )
 output$text2 <- renderText({
-  if(is.null(input$plot_click)) {
- "Click on a school plot to see high school application submission status by student."
-} else {
+req(input$plot_click)
  input$plot_click[[3]]
-}
 })
 
 output$students_barplot <- renderPlot({
-  req(input$plot_click)
-  hs_app(students_data_bar, input$plot_click[[3]])
+  validate(
+    need(input$plot_click != "", "Click on a school plot to see high school application submission status by student."))
+    hs_app(students_data_bar, input$plot_click[[3]])
 })
 
 ```
 
+Match {data-navmenu="College" data-orientation=columns}
+========================================================
+
+Column{data-width=500}
+----------------------------------------------------------
+### Match 2016
+
+```{r}
+plotOutput("match_overview", click = clickOpts(id = "match_click" ))
+
+output$match_overview <- renderPlot({
+  match_plot(match_data = final_undermatch,
+           accepted_data = final_accept)
+})
+
+```
+
+Column {data-width=500}
+----------------------------------------------------------
+### Student Match
+
+```{r}
+output$student_match_plot <- renderPlot({
+  #req(input$match_click)
+  validate(
+    need(input$match_click != "", "Click on a student graph for more details.")
+  )
+
+  student_match <- final_undermatch %>%
+   filter(student_name %in% input$match_click[[3]])
+
+  student_accept <- final_accept %>%
+  filter(student_name %in% input$match_click[[3]])
+
+  if(student_match$undermatch == "undermatched"){
+  lt <- "undermatched"
+  col_fill <- "#255694"
+} else {
+  lt <- "matched"
+  col_fill <- "#CFCCC1"
+}
+plot_student_m <- ggplot() +
+  geom_rect(data = student_match,
+            aes(linetype = lt),
+            fill = col_fill,
+            xmin = -Inf,
+            xmax = Inf,
+            ymin = -Inf,
+            ymax = Inf) +
+  geom_dotplot(data = student_accept %>%
+               filter(school_matches %in% "no_match",
+                      school_id != school_enroll),
+               aes(x = plot,
+                   y = ecc,
+                   fill = school_matches),
+               binwidth = 5,
+               binaxis = "y",
+               stackdir = "center",
+               dotsize = 1
+               ) +
+  geom_dotplot(data = student_accept %>%
+                 filter(school_matches %in% "match_school",
+                        school_id != school_enroll),
+               aes(x = plot,
+                   y = ecc,
+                   fill = school_matches),
+               binwidth = 5,
+               binaxis = "y",
+               stackdir = "center",
+               dotsize = 1
+               ) +
+  geom_dotplot(data = student_match,
+               aes(x = plot,
+                   y = enroll_ecc,
+                   fill = "enrolled"),
+               binwidth = 5,
+               binaxis = "y",
+               stackdir = "center",
+               dotsize = 1
+               ) +
+  geom_hline(data = student_match,
+             aes(yintercept = 40),
+             color = "white",
+             alpha = 0.25) +
+  geom_hline(data = student_match,
+             aes(yintercept = 60),
+             color = "white",
+             alpha = 0.25) +
+  geom_hline(data = student_match,
+             aes(yintercept = 80),
+             color = "white",
+             alpha = 0.25) +
+ facet_wrap("student_name") +
+ scale_color_manual("",
+                    values = c("umatch_bound" = "#C49A6C"),
+                    breaks = "umatch_bound",
+                    labels = "Undermatch Boundary") +
+ scale_fill_manual("",
+                   values = c("enrolled" = "#E27425",
+                              "no_match" = "white",
+                              "match_school" = "#FEDA00"),
+                   breaks = c("enrolled",
+                              "match_school",
+                              "no_match"),
+                   labels = c("Enrollment",
+                              "Matching Colleges",
+                              "Non-matching Colleges")) +
+ scale_x_discrete(breaks = c("school"),
+                  labels = NULL) +
+  scale_linetype_manual("",
+                        values = c("undermatched" = 0,
+                                   "matched" = 0),
+                        breaks = c("undermatched",
+                                   "matched"),
+                        labels = c("Undermatch",
+                                   "Match"),
+                        guide = guide_legend(override.aes =
+                                            list(fill =
+                                              ifelse(lt == "undermatched",
+                                                      "#255694", "#CFCCC1")
+                                                      ))) +
+    theme_bw() +
+    theme(panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          legend.position = "none") +
+          labs(x = "College Acceptances",
+               y = "Expected College Completion (%)")
+
+
+if(lt == "undermatched"){
+ plot_match <- plot_student_m +
+    geom_hline(data = student_match %>%
+                filter(undermatch %in% "undermatched"),
+               aes(yintercept = umatch_bound,
+                   color = "umatch_bound"),
+               linetype = 2)
+
+  } else{
+  plot_match <- plot_student_m
+  }
+  plot_match
+})
+
+```
+
+
+```{r}
+
+output$match_table <- renderFormattable({
+
+  req(input$match_click)
+
+  student_t <- final_accept %>%
+    filter(school_id != school_enroll) %>%
+    bind_rows(final_undermatch) %>%
+    filter(student_name %in% input$match_click[[3]])
+
+  student_table <- student_t %>%
+    mutate(ecc = ifelse(is.na(ecc) & is.na(name.x), enroll_ecc, ecc),
+           school_matches = ifelse(is.na(school_matches) &
+                                   is.na(name.x),
+                                   "enroll", school_matches),
+           name.x = ifelse(is.na(name.x), name, name.x)) %>%
+  group_by(id) %>%
+  mutate(max_ecc = ifelse(is.na(max_ecc), max(ecc, na.rm = TRUE),
+                          max_ecc),
+         type2 = stringr::str_extract(type, "\\d\\s.+")
+                          ) %>%
+  ungroup() %>%
+  mutate(ecc_diff = (max_ecc - ecc)) %>%
+  select(College = name.x,
+         ECC = ecc,
+         ecc_diff,
+         #"Undermatch Amount" = ecc_diff,
+         Type = type2,
+         school_id,
+         school_enroll,
+         school_matches,
+         undermatch
+           ) %>%
+  mutate(ECC = formattable::percent(ECC/100, digits=1)
+         #ecc_diff = ifelse(is.na(ecc_diff), "", ecc_diff)
+         #ecc_diff = formattable::percent(ecc_diff, digits = 1)#,
+         #
+         ) %>%
+  rename('Undermatch Amount' = ecc_diff) %>%
+  arrange(desc(ECC)) %>%
+  as.data.frame()
+
+    formattable(student_table, align = c("l", "r", "r", "l"),
+                list(formatter("span", style = x ~
+                                style("border-style" = c("solid","5px"))),
+                     College = formatter("span", style = ~
+                                        style(display = "inline-block",
+                                              "border-radius" = "4px",
+                                              "padding-right" = "2px",
+                                              "padding-left" = "2px",
+                                              #font.weight = "bold",
+                                              "background-color" =
+                                              ifelse(is.na(ECC), "white",
+                                              ifelse(undermatch ==
+                                                "undermatched",
+                                                "#255694", "#CFCCC1")),
+                     color = ifelse(school_matches == "enroll", "#E27425",
+                                   ifelse(school_matches == "match_school",
+                                          "yellow",#"#FEDA00",
+                                          "white")))),
+                     'Undermatch Amount' = formatter("span", style = x ~
+                                                    style(
+                                                    display = "inline-block",
+                                                    direction = "rtl",
+                                                    "border-radius" = "4px",
+                                                    "padding-right" = "2px",
+                                                    width = percent(x/max(abs(x),
+                                                                na.rm = TRUE)),
+                                                    "background-color" =  ifelse(is.na(x), "white",
+                                                    "#C49A6C")
+                                                    )),
+                  #  normalize_bar("burlywood",
+                  #                na.rm = TRUE),
+                     school_matches = FALSE,
+                     school_enroll = FALSE,
+                     undermatch = FALSE,
+                     school_id = FALSE))
+})
+
+fillRow(flex = c(.45, .55),
+        plotOutput("student_match_plot",
+            click = clickOpts("student_match_click"),
+            height = "50%"),
+        formattableOutput("match_table", height = "20%")
+        )
+```
+
+Summer Melt {data-navmenu="College" data-orientation=rows}
+========================================================
+
+Inputs{.sidebar}
+----------------------------------------------------------
+```{r}
+selectInput("melt_class", "Class",
+            choices = c(2014,
+                        2015,
+                        2016),
+            selected = c(2016,
+                         2015,
+                         2014),
+            multiple = TRUE)
+
+```
+
+Row {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+###Complete Melt {.no-padding}
+
+```{r}
+m_data <- reactive({
+  if(length(input$melt_class) == 1){
+    m_data <- melt_data(input$melt_class, denom_melt, enrolled_melt)
+  } else if(length(input$melt_class) == 2) {
+    c1 <- melt_data(input$melt_class[1], denom_melt, enrolled_melt)
+    c2 <- melt_data(input$melt_class[2], denom_melt, enrolled_melt)
+    m_data <- list()
+    for(i in 1:6){
+      m_data[[i]] <- bind_rows(c1[i], c2[i])
+    }
+    names(m_data) <- c("dm", "did_not_enroll",
+                       "prop_melt", "melt_4_2",
+                       "denom_4yr", "prop_melt_4_2")
+  } else {
+    c1 <- melt_data(input$melt_class[1], denom_melt, enrolled_melt)
+    c2 <- melt_data(input$melt_class[2], denom_melt, enrolled_melt)
+    c3 <- melt_data(input$melt_class[3], denom_melt, enrolled_melt)
+    m_data <- list()
+      for(i in 1:6){
+        m_data[[i]] <- bind_rows(c1[i], c2[i], c3[i])
+      }
+      names(m_data) <- c("dm", "did_not_enroll",
+                         "prop_melt", "melt_4_2",
+                         "denom_4yr", "prop_melt_4_2")
+  }
+  m_data
+})
+
+output$complete_melt <- renderPlot({
+
+ m_data()$dm %>%
+ left_join(m_data()$did_not_enroll) %>%
+ mutate(enrolled = ifelse(is.na(enrolled), TRUE, enrolled)) %>%
+ ggplot() +
+  geom_bar(aes(x = class,
+               fill = enrolled),
+           stat = "count",
+           color = "#255694",
+           width = .5) +
+  scale_fill_manual("", values = c("TRUE" = "#255694",
+                                   "FALSE" = NA),
+                    breaks = c("TRUE",
+                               "FALSE"),
+                    labels = c("Enrolled as of 10/01",
+                               "Did Not Enroll")) +
+  geom_text(data = m_data()$prop_melt %>%
+              group_by(class) %>%
+              mutate(display = max(N)) %>%
+              filter(!enrolled),
+            aes(x = class,
+                y = display,
+                label = sprintf("%s%%" ,prop)),
+          color = "#255694",
+          hjust = -.5,
+          fontface = "bold") +
+  geom_text(data = m_data()$prop_melt %>%
+              group_by(class) %>%
+              mutate(display = max(N)) %>%
+              filter(enrolled),
+            aes(x = class,
+                y = display,
+                label = sprintf("%s%%" ,prop)),
+            color = "white",
+            hjust = 1,
+            fontface = "bold") +
+  lims(y = c(0,70)) +
+  labs(x = "",
+       y = "") +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  coord_flip()
+
+})
+
+output$complete_melt_table <- renderTable({
+  m_data()$did_not_enroll %>%
+  filter(class %in% input$melt_class) %>%
+  arrange(desc(as.numeric(class)), l_name) %>%
+  tidyr::unite(Name, f_name, l_name, sep = " ") %>%
+  select(Name,
+         Class = class)
+  })
+
+fillRow(flex = c(.8, .2),
+        plotOutput("complete_melt"),
+        tableOutput("complete_melt_table")
+        )
+```
+
+###4-year to 2-year Melt {.no-padding}
+
+```{r}
+output$melt_4_2 <- renderPlot({
+  m_data()$denom_4yr %>%
+  left_join(m_data()$melt_4_2,
+            by = c("id",
+                   "f_name",
+                   "l_name",
+                   "class")) %>%
+  mutate(melt = ifelse(is.na(melt), FALSE, melt),
+         melt = factor(melt, levels = c("TRUE", "FALSE"))) %>%
+  ggplot() +
+  geom_bar(aes(x= class,
+              fill = melt),
+           stat = "count",
+           color = "#255694",
+           width = .5) +
+  geom_text(data = m_data()$prop_melt_4_2 %>%
+              group_by(class) %>%
+              mutate(display = max(N)) %>%
+              filter(melt),
+            aes(x = class,
+                y = display,
+                label = sprintf("%s%%", prop)),
+            color = "#255694",
+            fontface = "bold",
+            hjust = -1) +
+  geom_text(data = m_data()$prop_melt_4_2 %>%
+              group_by(class) %>%
+              mutate(display = max(N)) %>%
+              filter(is.na(melt)),
+            aes(x = class,
+                y = display,
+                label = sprintf("%s%%", prop)),
+            color = "white",
+            fontface = "bold",
+            hjust = 1) +
+  scale_fill_manual("", values = c("FALSE" = "#255694",
+                                   "TRUE" = NA),
+                    breaks = c("FALSE",
+                               "TRUE"),
+                    labels = c("Enrollment: 4-year",
+                               "Enrollment: 2-year")) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  labs(x = "",
+       y = "")
+  })
+
+  output$melt_4_2_table <- renderTable({
+    m_data()$melt_4_2 %>%
+    filter(class %in% input$melt_class) %>%
+    arrange(desc(as.numeric(class)), l_name) %>%
+    tidyr::unite(Name, f_name, l_name, sep = " ") %>%
+    select(Name,
+           Class = class)
+    })
+
+fillRow(flex = c(.8, .2),
+        plotOutput("melt_4_2"),
+        tableOutput("melt_4_2_table")
+  )
+
+```
 
 Classes {data-orientation=columns}
 ======================================================================
@@ -968,10 +1688,10 @@ class_sequences <- reactive({
           filter(!grepl("KIPP", type))
 
   if(input$noble) {
-    x <- x %>% mutate(type = type_noble)    
+    x <- x %>% mutate(type = type_noble)
     }
 
-  x <- x %>%  
+  x <- x %>%
       inner_join(school_types, by="type") %>%
   group_by(id) %>%
   arrange(id, start_date) %>%
@@ -1001,8 +1721,8 @@ output$sunburst <- renderSunburst({
             });
           d3.selectAll(endpaths).style('fill','none');
         }
-        "      
-  )    
+        "
+  )
 )
   })
 
@@ -1035,7 +1755,7 @@ output$hs_outcome <- renderPlot({
     filter(start_date == min(start_date)) %>%
     arrange(last_name, first_name)
 
-  p <- class_all_HS_placement %>%   
+  p <- class_all_HS_placement %>%
     ggplot() +
       geom_bar(aes(x = status_c, fill=status_c)
                ) +
@@ -1047,7 +1767,7 @@ output$hs_outcome <- renderPlot({
 
   if(input$noble) p <- p + facet_grid(~noble_2)
 
-  p  
+  p
 
   })
 
