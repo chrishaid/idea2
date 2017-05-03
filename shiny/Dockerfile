@@ -90,7 +90,8 @@ RUN R -e "install.packages('igraph',  repos='https://cran.rstudio.com/')"
 
 RUN R -e "install.packages('formattable')"
 
-RUN R -e "install.packages('prophet')"
+
+
 # Set timezone to Chicago
 RUN cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \
     echo "America/Chicago" > /etc/timezone
