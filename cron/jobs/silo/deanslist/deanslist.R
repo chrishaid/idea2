@@ -43,7 +43,7 @@ susp_df <- bind_rows(susp_list) %>%
 
 susp_rows <- susp_df$penalties %>% 
   map_lgl(~ifelse('IsSuspension' %in% names(.x), 
-                  grepl("Y",.[['IsSuspension']]), 
+                  grepl("TRUE",.[['IsSuspension']]), 
                   FALSE
   )
   )
