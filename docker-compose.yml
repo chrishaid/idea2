@@ -12,63 +12,76 @@
 #  env_file:
 #    - ./oauth/.env
 
+version: '2'
+services:
 #########################
 ##  Cron / ETL Service ##
 #########################
-cron:
-  build: ./cron/
-  expose:
-    - "8787"
-  ports:
-    - "8787:8787"
-  volumes:
-    - ./cron/jobs:/jobs
-    #- /data
-  volumes_from:
-    - data
-    - shiny
 
-
-
-#########################
-##  Data Volume        ##
-#########################
-data:
-    build: ./data/
-    #volumes_from:
-    #  - cron
+  cron:
+    build: ./cron/
+    expose:
+      - "8787"
+    ports:
+      - "8787:8787"
     volumes:
-     - /data
-     - ./data/config:/config
-
-#########################
-## Web server Service  ##
-#########################
-#nginx:
-#  build: ./nginx
-#  links:
-#    - shiny
-#  ports:
-#    - "80:80"
-#  restart: always
-#  volumes_from:
-#    - shiny
+      - ./cron/jobs:/jobs
+      #- /data
+    volumes_from:
+      - data
+      - shiny
 
 
-#########################
-## Shiny Service       ##
-#########################
-shiny:
-  build: ./shiny/
-  expose:
-    - "3838"
-  ports:
-    - "3838:3838"
-  volumes_from:
-    - data
-  volumes:
-    - ./shiny/war/:/srv/shiny-server/war
-    - ./shiny/map/:/srv/shiny-server/map
-    - ./shiny/recruit/:/srv/shiny-server/recruit
-    - ./shiny/assignments/:/srv/shiny-server/assignments
-    - ./shiny/ktc/:/srv/shiny-server/ktc
+
+  #########################
+  ##  Data Volume        ##
+  #########################
+  data:
+      build: ./data/
+      #volumes_from:
+      #  - cron
+      volumes:
+       - /data
+       - ./data/config:/config
+
+  ####################################
+  ## Postrgres for Airflow service  ##
+  ####################################
+  postgres:
+    image: postgres:9.6
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+
+  #########################
+  ## Airflow service     ##
+  #########################
+  airflow:
+    build: ./airflow
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    environment:
+      - LOAD_EX=y
+      - EXECUTOR=Local
+
+
+  #########################
+  ## Shiny Service       ##
+  #########################
+  shiny:
+    build: ./shiny/
+    expose:
+      - "3838"
+    ports:
+      - "3838:3838"
+    volumes_from:
+      - data
+    volumes:
+      - ./shiny/war/:/srv/shiny-server/war
+      - ./shiny/map/:/srv/shiny-server/map
+      - ./shiny/recruit/:/srv/shiny-server/recruit
+      - ./shiny/assignments/:/srv/shiny-server/assignments
+      - ./shiny/ktc/:/srv/shiny-server/ktc
