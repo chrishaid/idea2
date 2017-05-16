@@ -39,7 +39,6 @@ RUN set -ex \
         curl \
         netcat \
         locales \
-        sqlite3 \
     && sed -i 's/^# en_US.UTF-8 UTF-8$/en_US.UTF-8 UTF-8/g' /etc/locale.gen \
     && locale-gen \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
@@ -50,7 +49,7 @@ RUN set -ex \
     && pip install pyOpenSSL \
     && pip install ndg-httpsclient \
     && pip install pyasn1 \
-    && pip install "airflow[crypto,celery,postgres,hive,hdfs,jdbc, gcs_api]"==$AIRFLOW_VERSION \
+    && pip install airflow[crypto,celery,postgres,hive,hdfs,jdbc]==$AIRFLOW_VERSION \
     && pip install celery[redis]==3.1.17 \
     && apt-get remove --purge -yqq $buildDeps \
     && apt-get clean \
@@ -62,22 +61,13 @@ RUN set -ex \
         /usr/share/doc \
         /usr/share/doc-base
 
-#RUN airflow initdb
-
-#RUN airflow webserver -p 8080
-
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
+COPY script/entrypoint.sh /entrypoint.sh
 COPY config/airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
 
-#RUN chown -R airflow: ${AIRFLOW_HOME}
+RUN chown -R airflow: ${AIRFLOW_HOME}
 
-#USER airflow
+EXPOSE 8080 5555 8793
 
+USER airflow
 WORKDIR ${AIRFLOW_HOME}
-
-CMD airflow initdb &&\
-    /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
-#CMD /usr/bin/supervisrd/supervisord -c  /etc/supervisor/conf.d/supervisord.conf &&\
-#    cron && tail -f /var/log/cron.log && \
-#    chown -R rstudio:staff /data
+ENTRYPOINT ["/entrypoint.sh"]
