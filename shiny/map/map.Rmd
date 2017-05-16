@@ -200,7 +200,7 @@ MAP Parameters
                             "Fall to Fall",
                             "Winter to Winter",
                             "Winter to Spring"),
-                selected = "Fall to Winter",
+                selected = "Spring to Spring",
                 multiple = FALSE
               )
 

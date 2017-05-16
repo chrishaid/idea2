@@ -44,24 +44,26 @@ map_cdf <- tbl(silo_nwea_db,
 
 map_cdf <- collect(map_cdf)
 
-flog.info("Separate combined table into assessment results and roster") 
+map_cdf <- map_cdf %>% filter(TestType == "Survey With Goals")
+
+flog.info("Separate combined table into assessment results and roster")
 
 map_sep <- separate_cdf(map_cdf,district_name = "KIPP Chicago")
 
-flog.info("Create mapvizieR object for 2015") 
+flog.info("Create mapvizieR object for 2015")
 
 map_mv_15 <-
   mapvizieR(
     cdf = map_sep$cdf,
     roster = map_sep$roster,
-     include_unsanctioned_windows = TRUE 
+     include_unsanctioned_windows = TRUE
     )
 
-flog.info("Create summary objects") 
+flog.info("Create summary objects")
 
 map_sum_15 <- summary(map_mv_15$growth_df)
 
-flog.info("Get current PowerSchool Roster") 
+flog.info("Get current PowerSchool Roster")
 
 current_ps <- tbl(silo_nwea_db,
                sql("SELECT * FROM PS_mirror..Students WHERE Enroll_Status=0")
@@ -110,7 +112,7 @@ student_enrollment_tested <-
 
 
 flog.info("Getting historical scores")
-hist_scores <- map_mv_15$cdf %>% 
+hist_scores <- map_mv_15$cdf %>%
   ungroup() %>%
   inner_join(map_mv_15$roster %>%
                ungroup() %>%
