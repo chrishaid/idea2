@@ -200,7 +200,7 @@ MAP Parameters
                             "Fall to Fall",
                             "Winter to Winter",
                             "Winter to Spring"),
-                selected = "Fall to Winter",
+                selected = "Spring to Spring",
                 multiple = FALSE
               )
 
@@ -343,7 +343,8 @@ div(
                      select(-11, -12) %>%
                      ungroup(),
                   School == input$hs_school,
-                  SY == input$hs_sy)
+                  SY == input$hs_sy) %>%
+            mutate(Grade = as.integer(Grade))      
 
     DT::datatable(data,
                 style = 'bootstrap',
