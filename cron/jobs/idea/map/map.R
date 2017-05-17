@@ -13,7 +13,7 @@ setwd("/jobs/idea/map")
 # set up logging
 if(!dir.exists("logs")) dir.create("logs")
 flog.threshold(TRACE)
-flog.appender(appender.tee("logs/suspensions.logs"))
+flog.appender(appender.tee("logs/map.logs"))
 
 flog.info("Source helpers")
 source("lib/helpers.R")
@@ -44,13 +44,15 @@ map_cdf <- tbl(silo_nwea_db,
 
 map_cdf <- collect(map_cdf)
 
-map_cdf <- map_cdf %>% filter(TestType == "Survey With Goals")
+map_cdf <- map_cdf %>% 
+  filter(TestType == "Survey With Goals") %>%
+  mutate(TestStartDate = as.character(mdy(TestStartDate)))
 
 flog.info("Separate combined table into assessment results and roster")
 
 map_sep <- separate_cdf(map_cdf,district_name = "KIPP Chicago")
 
-flog.info("Create mapvizieR object for 2015")
+flog.info("Create mapvizieR object for 2015 norms")
 
 map_mv_15 <-
   mapvizieR(
