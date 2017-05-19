@@ -5,8 +5,10 @@ require(readr)
 require(lubridate)
 require(purrr)
 require(stringr)
+require(silounloadr)
 
 setwd("/jobs/idea/attendance/data")
+readRenviron("/config/.Renviron")
 
 # Load config and set other variables ####
 config <- as.data.frame(read.dcf("/config/config.dcf"),
@@ -20,17 +22,19 @@ schools <- data_frame(schoolid = c(78102, 7810, 400146, 400163, 4001802, 400180)
 first_day <- config$FIRST_DAY
 
 # Connect to Silo ####
-silo_ps_db <- src_sqlserver(server =  config$SILO_URL,
-                             database = config$SILO_DBNAME_PS,
-                             properties = list(user = config$SILO_USER,
-                                               password = config$SILO_PWD))
+# silo_ps_db <- src_sqlserver(server =  config$SILO_URL,
+#                              database = config$SILO_DBNAME_PS,
+#                              properties = list(user = config$SILO_USER,
+#                                                password = config$SILO_PWD))
 
 # Get students ####
-students <- tbl(silo_ps_db, "students") %>% collect()
+#students <- tbl(silo_ps_db, "students") %>% collect()
 
+students <- get_ps("students") %>% 
+  collect()
 
 # Get attendance ####
-attendance <- tbl(silo_ps_db,
+attendance <- tbl(silo_dbname_ps_mirror,
                   sql(sprintf("SELECT * FROM attendance WHERE ATT_DATE>='%s'",
                               first_day
                               )
@@ -40,7 +44,7 @@ attendance <- tbl(silo_ps_db,
 
 
 # Get membership ####
-membership <- tbl(silo_ps_db,
+membership <- tbl(silo_dbname_ps_mirror,
                   sql(sprintf("SELECT * FROM membership WHERE CALENDARDATE>='%s'",
                            first_day
                            )

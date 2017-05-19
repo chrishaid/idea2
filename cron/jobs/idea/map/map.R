@@ -7,8 +7,10 @@ require(purrr)
 require(stringr)
 require(mapvizieR)
 require(futile.logger)
+require(silounloadr)
 
 setwd("/jobs/idea/map")
+readRenviron("/config/.Renviron")
 
 # set up logging
 if(!dir.exists("logs")) dir.create("logs")
@@ -30,22 +32,24 @@ schools <- data_frame(schoolid = c(78102, 7810, 400146, 400163, 4001802, 400180)
 first_day <- config$FIRST_DAY
 
 flog.info("Connect to Silo")
-silo_nwea_db <- src_sqlserver(server =  config$SILO_URL,
-                             database = config$SILO_DBNAME_NWEA,
-                             properties = list(user = config$SILO_USER,
-                                               password = config$SILO_PWD))
+# silo_nwea_db <- src_sqlserver(server =  config$SILO_URL,
+#                              database = config$SILO_DBNAME_NWEA,
+#                              properties = list(user = config$SILO_USER,
+#                                                password = config$SILO_PWD))
 
 
 flog.info("Pull map data")
+map_cdf <- silounloadr::get_nwea('MAP$comprehensive#plus_cps')
 
-map_cdf <- tbl(silo_nwea_db,
-               sql("SELECT * FROM MAP$comprehensive#plus_cps WHERE GrowthMeasureYN='TRUE'")
-          )
+# map_cdf <- tbl(silo_nwea_db,
+#                sql("SELECT * FROM MAP$comprehensive#plus_cps WHERE GrowthMeasureYN='TRUE'")
+#           )
 
 map_cdf <- collect(map_cdf)
 
 map_cdf <- map_cdf %>% 
-  filter(TestType == "Survey With Goals") %>%
+  filter(TestType == "Survey With Goals",
+         GrowthMeasureYN == 'TRUE') %>%
   mutate(TestStartDate = as.character(mdy(TestStartDate)))
 
 flog.info("Separate combined table into assessment results and roster")
@@ -67,9 +71,12 @@ map_sum_15 <- summary(map_mv_15$growth_df)
 
 flog.info("Get current PowerSchool Roster")
 
-current_ps <- tbl(silo_nwea_db,
-               sql("SELECT * FROM PS_mirror..Students WHERE Enroll_Status=0")
-               )
+
+stus <- silounloadr::get_ps("students")
+current_ps <- stus %>% 
+  filter(ENROLL_STATUS == 0)
+#               sql("SELECT * FROM PS_mirror..Students WHERE Enroll_Status=0")
+#               )
 
 current_ps <- collect(current_ps)
 

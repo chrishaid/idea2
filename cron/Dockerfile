@@ -12,9 +12,13 @@ RUN apt-get update -y && apt-get install -y  \
 
 # add R packages necessary for jobs to run.
 
+RUN R -e "install.packages('tidyverse')"
+
+RUN R -e "devtools::install_github('hadley/dplyr')"
+
 RUN R -e "install.packages(c('ETLUtils', 'RJDBC'))"
 
-RUN R -e "devtools::install_github('imanuelcostigan/RSQLServer@ae0cd8d')"
+RUN R -e "devtools::install_github('imanuelcostigan/RSQLServer')"
 
 RUN R -e "devtools::install_github('jennybc/googlesheets')"
 
@@ -26,7 +30,7 @@ RUN R -e "devtools::install_github('rstudio/DT')"
 
 RUN R -e "install.packages('zoo')"
 
-RUN R -e "devtools::install_github('chrishaid/deanslistr')"
+RUN R -e "devtools::install_github('kippchicago/deanslistr')"
 
 RUN R -e "install.packages('futile.logger')"
 
@@ -34,11 +38,7 @@ RUN R -e "install.packages('googleCloudStorageR')"
 
 RUN R -e "install.packages('janitor')"
 
-RUN R -e "install.packages('tidyverse')"
-
-RUN R -e "devtools::install_github('chrishaid/silounloadr')"
-
-RUN R -e "devtools::install_github('hadley/dplyr@63d4a9f5')"
+RUN R -e "devtools::install_github('kippchicago/silounloadr')"
 
 RUN R -e "install.packages('curl')"
 
