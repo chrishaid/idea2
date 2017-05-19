@@ -5,33 +5,37 @@ require(RSQLServer)
 require(tidyr)
 require(lubridate)
 require(stringr)
+require(silounloadr)
 
 setwd("/jobs/idea/assignments")
+readRenviron("/config/.Renviron")
 
 config <- as.data.frame(read.dcf("/config/config.dcf"),
                         stringsAsFactors = FALSE)
 
-silo_ps_db <- src_sqlserver(server =  config$SILO_URL,
-                            database = config$SILO_DBNAME_PS,
-                            properties = list(user = config$SILO_USER,
-                                              password = config$SILO_PWD))
+# silo_ps_db <- src_sqlserver(server =  config$SILO_URL,
+#                             database = config$SILO_DBNAME_PS,
+#                             properties = list(user = config$SILO_USER,
+#                                               password = config$SILO_PWD))
 
-pg_final_grades <- tbl(silo_ps_db, "pgfinalgrades")
+pg_final_grades <- get_ps("pgfinalgrades")
 
-#pg_assignments <- tbl(silo_ps_db, "pgassignments")
-assignment <- tbl(silo_ps_db, "assignment")
+pg_assignments <- get_ps("pgassignments")
+assignment <- get_ps("assignment")
 
-students <- tbl(silo_ps_db, sql("SELECT * FROM students WHERE enroll_status = 0"))
+#students <- tbl(silo_dbname_ps_mirror, sql("SELECT * FROM students WHERE enroll_status = 0"))
 
-assignment_score <- tbl(silo_ps_db, "assignmentscore")
-assignment_section <- tbl(silo_ps_db, "assignmentsection")
+students <- get_ps("students") %>% filter(ENROLL_STATUS == 0)
 
-section_scores_ids <- tbl(silo_ps_db, "SectionScoresID")
+assignment_score <- get_ps("assignmentscore")
+assignment_section <- get_ps("assignmentsection")
 
-sections <- tbl(silo_ps_db, sql("SELECT * from sections where TERMID = 2600"))
+section_scores_ids <- get_ps("SectionScoresID")
 
-cc <- tbl(silo_ps_db, sql("SELECT * FROM cc WHERE DATEENROLLED >='01-AUG-16'"))
-
+#sections <- tbl(silo_ps_db, sql("SELECT * from sections where TERMID = 2600"))
+sections <- get_ps("sections") %>% filter(TERMID == 2600L)
+#cc <- tbl(silo_ps_db, sql("SELECT * FROM cc WHERE DATEENROLLED >='01-AUG-16'"))
+cc <- get_ps('cc') %>% filter(DATEENROLLED >= '01-AUG-16')
 
 pg_fg_cc <- pg_final_grades %>%
   select(SECTIONID,

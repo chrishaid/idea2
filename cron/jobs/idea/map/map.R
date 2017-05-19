@@ -7,6 +7,7 @@ require(purrr)
 require(stringr)
 require(mapvizieR)
 require(futile.logger)
+require(silounloadr)
 
 setwd("/jobs/idea/map")
 readRenviron("/config/.Renviron")

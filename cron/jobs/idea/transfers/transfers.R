@@ -4,10 +4,11 @@ require(RSQLServer)
 require(lubridate)
 require(purrr)
 require(stringr)
-
+require(silounloadr)
 
 
 setwd("/jobs/idea/transfers")
+readRenviron("/config/.Renviron")
 
 source('lib/helpers.R')
 
@@ -16,20 +17,20 @@ config <- as.data.frame(read.dcf("/config/config.dcf"),
                         stringsAsFactors = FALSE)
 
 # Connect to Silo ####
-silo_ps_db <- src_sqlserver(server =  config$SILO_URL,
-                            database = config$SILO_DBNAME_PS,
-                            properties = list(user = config$SILO_USER,
-                                              password = config$SILO_PWD))
+# silo_ps_db <- src_sqlserver(server =  config$SILO_URL,
+#                             database = config$SILO_DBNAME_PS,
+#                             properties = list(user = config$SILO_USER,
+#                                               password = config$SILO_PWD))
 
 # Get students ####
-students <- tbl(silo_ps_db, "students")
+students <-get_ps("students")
 
 hsr_dates <- c(ymd("161004"), ymd("151001") - years(0:1))
 
 
 membs_list <- hsr_dates %>%
-map(~get_membership_on_date(silo_ps_db, .) %>%
-      collect())
+  map(~get_membership_on_date(silo_dbname_ps_mirror, .) %>%
+  collect())
 
 enrolled <- bind_rows(membs_list)
 
