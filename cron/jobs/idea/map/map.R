@@ -47,10 +47,16 @@ map_cdf <- silounloadr::get_nwea('MAP$comprehensive#plus_cps')
 
 map_cdf <- collect(map_cdf)
 
-map_cdf <- map_cdf %>% 
+flog.info("Excluding Survey only and some light munging")
+ map_cdf <- map_cdf %>% 
+  mutate(TestType = if_else(is.na(TestType), "Survey With Goals", TestType),
+         TestID = as.character(TestID)) %>%
   filter(TestType == "Survey With Goals",
          GrowthMeasureYN == 'TRUE') %>%
-  mutate(TestStartDate = as.character(mdy(TestStartDate)))
+  mutate(TestStartDate = as.character(mdy(TestStartDate)),
+         TestID = if_else(is.na(TestID),  
+                          paste(StudentID, MeasurementScale, TestStartDate, TestDurationMinutes, sep = "_"),
+                          TestID))
 
 flog.info("Separate combined table into assessment results and roster")
 
@@ -62,7 +68,8 @@ map_mv_15 <-
   mapvizieR(
     cdf = map_sep$cdf,
     roster = map_sep$roster,
-     include_unsanctioned_windows = TRUE
+     include_unsanctioned_windows = TRUE,
+    verbose = TRUE
     )
 
 flog.info("Create summary objects")

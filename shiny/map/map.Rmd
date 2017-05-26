@@ -340,7 +340,7 @@ Column
 div(
   DT::renderDataTable({
     data <- filter(hist_scores %>%
-                     select(-11, -12) %>%
+                     #select(-11, -12) %>%
                      ungroup(),
                   School == input$hs_school,
                   SY == input$hs_sy) %>%
@@ -349,7 +349,7 @@ div(
     DT::datatable(data,
                 style = 'bootstrap',
                 rownames = FALSE,
-                filter = 'top',
+                filter = list(position = 'top', plain = TRUE),
                 options = list(
                   bPaginate = FALSE,
                   columnDefs = list(list(width = '10px', targets = c(2,5,8,9)))
