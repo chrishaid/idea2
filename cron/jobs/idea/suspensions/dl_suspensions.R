@@ -28,7 +28,7 @@ susps <- get_deanslist("suspensions", collect = TRUE) %>%
   clean_names()
 
 flog.info("Get Membership")
-ps_md <-get_powerschool('ps_membership_defaults_deduped')
+ps_md <-get_ps('membership') 
 membership <- ps_md %>%
   filter(calendardate >= "2016-08-22 00:00") %>%
   group_by(schoolid, calendardate) %>%
@@ -177,7 +177,7 @@ oss_w_kop<-oss_2 %>%
 
 oss_max<-oss_w_kop %>%
   group_by(school_name) %>%
-  filter(month == max(month)) 
+  filter(month_year == max(month_year)) 
 
 
 

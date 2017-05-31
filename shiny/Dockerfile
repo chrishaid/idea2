@@ -62,7 +62,11 @@ RUN R -e "install.packages(c('RCurl', 'rmarkdown', 'shiny', 'xtable', 'Cairo', '
 
 #RUN R -e "devtools::install_github('hadley/readr')"
 
-#RUN R -e "devtools::install_github('hadley/dplyr')"
+RUN R -e "install.packages('glue',  repos='https://cran.rstudio.com/')"
+
+RUN R -e "install.packages('tibble',  repos='https://cran.rstudio.com/')"
+
+RUN R -e "devtools::install_github('hadley/dplyr', dependencies = TRUE)"
 
 RUN R -e "devtools::install_github('jennybc/googlesheets')"
 

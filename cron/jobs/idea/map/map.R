@@ -7,13 +7,15 @@ require(purrr)
 require(stringr)
 require(mapvizieR)
 require(futile.logger)
+require(silounloadr)
 
 setwd("/jobs/idea/map")
+readRenviron("/config/.Renviron")
 
 # set up logging
 if(!dir.exists("logs")) dir.create("logs")
 flog.threshold(TRACE)
-flog.appender(appender.tee("logs/suspensions.logs"))
+flog.appender(appender.tee("logs/map.logs"))
 
 flog.info("Source helpers")
 source("lib/helpers.R")
@@ -30,33 +32,44 @@ schools <- data_frame(schoolid = c(78102, 7810, 400146, 400163, 4001802, 400180)
 first_day <- config$FIRST_DAY
 
 flog.info("Connect to Silo")
-silo_nwea_db <- src_sqlserver(server =  config$SILO_URL,
-                             database = config$SILO_DBNAME_NWEA,
-                             properties = list(user = config$SILO_USER,
-                                               password = config$SILO_PWD))
+# silo_nwea_db <- src_sqlserver(server =  config$SILO_URL,
+#                              database = config$SILO_DBNAME_NWEA,
+#                              properties = list(user = config$SILO_USER,
+#                                                password = config$SILO_PWD))
 
 
 flog.info("Pull map data")
+map_cdf <- silounloadr::get_nwea('MAP$comprehensive#plus_cps')
 
-map_cdf <- tbl(silo_nwea_db,
-               sql("SELECT * FROM MAP$comprehensive#plus_cps WHERE GrowthMeasureYN='TRUE'")
-          )
+# map_cdf <- tbl(silo_nwea_db,
+#                sql("SELECT * FROM MAP$comprehensive#plus_cps WHERE GrowthMeasureYN='TRUE'")
+#           )
 
 map_cdf <- collect(map_cdf)
 
-map_cdf <- map_cdf %>% filter(TestType == "Survey With Goals")
+flog.info("Excluding Survey only and some light munging")
+ map_cdf <- map_cdf %>% 
+  mutate(TestType = if_else(is.na(TestType), "Survey With Goals", TestType),
+         TestID = as.character(TestID)) %>%
+  filter(TestType == "Survey With Goals",
+         GrowthMeasureYN == 'TRUE') %>%
+  mutate(TestStartDate = as.character(mdy(TestStartDate)),
+         TestID = if_else(is.na(TestID),  
+                          paste(StudentID, MeasurementScale, TestStartDate, TestDurationMinutes, sep = "_"),
+                          TestID))
 
 flog.info("Separate combined table into assessment results and roster")
 
 map_sep <- separate_cdf(map_cdf,district_name = "KIPP Chicago")
 
-flog.info("Create mapvizieR object for 2015")
+flog.info("Create mapvizieR object for 2015 norms")
 
 map_mv_15 <-
   mapvizieR(
     cdf = map_sep$cdf,
     roster = map_sep$roster,
-     include_unsanctioned_windows = TRUE
+     include_unsanctioned_windows = TRUE,
+    verbose = TRUE
     )
 
 flog.info("Create summary objects")
@@ -65,9 +78,12 @@ map_sum_15 <- summary(map_mv_15$growth_df)
 
 flog.info("Get current PowerSchool Roster")
 
-current_ps <- tbl(silo_nwea_db,
-               sql("SELECT * FROM PS_mirror..Students WHERE Enroll_Status=0")
-               )
+
+stus <- silounloadr::get_ps("students")
+current_ps <- stus %>% 
+  filter(ENROLL_STATUS == 0)
+#               sql("SELECT * FROM PS_mirror..Students WHERE Enroll_Status=0")
+#               )
 
 current_ps <- collect(current_ps)
 
