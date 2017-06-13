@@ -7,7 +7,16 @@ ENV TERM linux
 
 # Airflow
 ARG AIRFLOW_VERSION=1.8.0
-ARG AIRFLOW_HOME=/usr/local/airflow
+ARG AIRFLOW_HOME=/etc/airflow
+
+#Postgres
+ENV POSTGRES_HOST=postgres
+ENV POSTGRES_PORT=5432
+ENV POSTGRES_USER=airflow
+ENV POSTGRES_PASSWORD=airflow
+ENV POSTGRES_DB=airflow
+
+
 
 # Define en_US.
 ENV LANGUAGE en_US.UTF-8
@@ -39,6 +48,7 @@ RUN set -ex \
         curl \
         netcat \
         locales \
+        vim \
     && sed -i 's/^# en_US.UTF-8 UTF-8$/en_US.UTF-8 UTF-8/g' /etc/locale.gen \
     && locale-gen \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
@@ -49,8 +59,8 @@ RUN set -ex \
     && pip install pyOpenSSL \
     && pip install ndg-httpsclient \
     && pip install pyasn1 \
-    && pip install airflow[crypto,celery,postgres,hive,hdfs,jdbc]==$AIRFLOW_VERSION \
-    && pip install celery[redis]==3.1.17 \
+    && pip install airflow[crypto,postgres,hdfs,jdbc]==$AIRFLOW_VERSION \
+    #&& pip install celery[redis]==3.1.17 \
     && apt-get remove --purge -yqq $buildDeps \
     && apt-get clean \
     && rm -rf \
@@ -61,13 +71,27 @@ RUN set -ex \
         /usr/share/doc \
         /usr/share/doc-base
 
-COPY script/entrypoint.sh /entrypoint.sh
+#COPY script/entrypoint.sh /entrypoint.sh
 COPY config/airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
 
-RUN chown -R airflow: ${AIRFLOW_HOME}
+# COPY supervisrd.conf
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-EXPOSE 8080 5555 8793
+RUN mkdir /var/log/airflow
+RUN mkdir /etc/airflow/dags
+
+# This next line is necessary to get everything up and running nicely.
+# Dags need to be in the dag folder for the scheduler, db, and webserver to paly nicely
+RUN cp -rf /usr/local/lib/python2.7/dist-packages/airflow/example_dags/* ${AIRFLOW_HOME}/dags/
+RUN chown -R airflow: ${AIRFLOW_HOME}
+RUN chown -R airflow: /etc/supervisor/
+RUN chown -R airflow: /var/log/
+
+
+EXPOSE 8080
+
+#ENV FERNET_KEY=kYaLE7G8dtKsVMfoIuXGl2kLvvDOzkEg0lI9ssKy7N4=
 
 USER airflow
-WORKDIR ${AIRFLOW_HOME}
-ENTRYPOINT ["/entrypoint.sh"]
+#WORKDIR ${AIRFLOW_HOME}
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
