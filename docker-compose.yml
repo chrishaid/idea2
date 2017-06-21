@@ -18,18 +18,18 @@ services:
 ##  Cron / ETL Service ##
 #########################
 
-#  cron:
-#    build: ./cron/
-#    expose:
-#      - "8787"
-#    ports:
-#      - "8787:8787"
-#    volumes:
-#      - ./cron/jobs:/jobs
-#      #- /data
-#    volumes_from:
-#      - data
-#      - shiny
+  cron:
+    build: ./cron/
+    expose:
+      - "8787"
+    ports:
+      - "8787:8787"
+    volumes:
+      - ./cron/jobs:/jobs
+      #- /data
+    volumes_from:
+      - data
+    #  - shiny
 
 
 
@@ -61,11 +61,21 @@ services:
     build: ./airflow
     depends_on:
       - postgres
+      - data
+    expose:
+      - "8787"
     ports:
       - "8080:8080"
+    volumes:
+      - ./airflow/dags:/etc/airflow/dags
+    volumes_from:
+      - data
+      - cron
+#      - shiny
     environment:
       - LOAD_EX=y
       - EXECUTOR=Local
+      - AIRFLOW_USER_PWD=art_gallery
     #command: webserver
 
 

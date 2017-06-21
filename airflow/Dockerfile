@@ -87,11 +87,12 @@ RUN chown -R airflow: ${AIRFLOW_HOME}
 RUN chown -R airflow: /etc/supervisor/
 RUN chown -R airflow: /var/log/
 
+#RUN setfacl -m u:airflow:rwx /data
 
 EXPOSE 8080
 
 #ENV FERNET_KEY=kYaLE7G8dtKsVMfoIuXGl2kLvvDOzkEg0lI9ssKy7N4=
 
-USER airflow
+#USER airflow
 #WORKDIR ${AIRFLOW_HOME}
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
