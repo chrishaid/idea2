@@ -43,6 +43,7 @@ services:
       volumes:
        - /data
        - ./data/config:/config
+      command: chmod -R 777 data
 
   ####################################
   ## Postrgres for Airflow service  ##
@@ -71,28 +72,27 @@ services:
     volumes_from:
       - data
       - cron
-#      - shiny
+      - shiny
     environment:
       - LOAD_EX=y
       - EXECUTOR=Local
-      - AIRFLOW_USER_PWD=art_gallery
     #command: webserver
 
 
   #########################
   ## Shiny Service       ##
   #########################
-#  shiny:
-#    build: ./shiny/
-#    expose:
-#      - "3838"
-#    ports:
-#      - "3838:3838"
-#    volumes_from:
-#      - data
-#    volumes:
-#      - ./shiny/war/:/srv/shiny-server/war
-#      - ./shiny/map/:/srv/shiny-server/map
-#      - ./shiny/recruit/:/srv/shiny-server/recruit
-#      - ./shiny/assignments/:/srv/shiny-server/assignments
-#      - ./shiny/ktc/:/srv/shiny-server/ktc
+  shiny:
+    build: ./shiny/
+    expose:
+      - "3838"
+    ports:
+      - "3838:3838"
+    volumes_from:
+      - data
+    volumes:
+      - ./shiny/war/:/srv/shiny-server/war
+      - ./shiny/map/:/srv/shiny-server/map
+      - ./shiny/recruit/:/srv/shiny-server/recruit
+      - ./shiny/assignments/:/srv/shiny-server/assignments
+      - ./shiny/ktc/:/srv/shiny-server/ktc

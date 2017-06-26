@@ -14,13 +14,13 @@ RUN apt-get update -y && apt-get install -y  \
 
 RUN R -e "install.packages('tidyverse')"
 
-RUN R -e "devtools::install_github('hadley/dplyr')"
+#RUN R -e "devtools::install_github('hadley/dplyr')"
 
 RUN R -e "install.packages(c('ETLUtils', 'RJDBC'))"
 
-RUN R -e "devtools::install_github('imanuelcostigan/RSQLServer')"
+RUN R -e "install.packages('RSQLServer')"
 
-RUN R -e "devtools::install_github('jennybc/googlesheets')"
+RUN R -e "install.packages('googlesheets')"
 
 RUN R -e "devtools::install_github('almartin82/mapvizieR')"
 

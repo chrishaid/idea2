@@ -20,7 +20,7 @@ schools <- data_frame(schoolid = c(78102, 7810, 400146, 400163, 4001802, 400180)
                       schoolabbreviation =c("KAP", "KAMS", "KCCP", "KBCP", "KOP", "KOA"))
 
 first_day <- config$FIRST_DAY
-
+first_day <- '2017-03-01'
 # Connect to Silo ####
 # silo_ps_db <- src_sqlserver(server =  config$SILO_URL,
 #                              database = config$SILO_DBNAME_PS,
@@ -74,7 +74,7 @@ member_att <- membership  %>%
 
 
 # Pull member_att into memory ####
-#member_att<-collect(member_att)
+member_att<-collect(member_att)
 
 
 # light munging of member_att to get final attendance table ####
@@ -88,8 +88,10 @@ attend_student <- member_att %>%
          present = ifelse(is.na(present2), 1, present3),
          absent = (1 - present)*enrolled,
          date = ymd_hms(CALENDARDATE)) %>%
+  collect() %>%
   left_join(students %>%
-              select(STUDENTID = ID, LASTFIRST, HOME_ROOM),
+              select(STUDENTID = ID, LASTFIRST, HOME_ROOM) %>%
+              collect(),
             by="STUDENTID") %>%
   inner_join(schools, by=c("SCHOOLID" = "schoolid")) %>%
   select(STUDENTID,

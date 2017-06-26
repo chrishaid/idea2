@@ -71,7 +71,7 @@ RUN set -ex \
         /usr/share/doc \
         /usr/share/doc-base
 
-#COPY script/entrypoint.sh /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 COPY config/airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
 
 # COPY supervisrd.conf
@@ -82,17 +82,18 @@ RUN mkdir /etc/airflow/dags
 
 # This next line is necessary to get everything up and running nicely.
 # Dags need to be in the dag folder for the scheduler, db, and webserver to paly nicely
-RUN cp -rf /usr/local/lib/python2.7/dist-packages/airflow/example_dags/* ${AIRFLOW_HOME}/dags/
+#RUN cp -rf /usr/local/lib/python2.7/dist-packages/airflow/example_dags/* ${AIRFLOW_HOME}/dags/
 RUN chown -R airflow: ${AIRFLOW_HOME}
 RUN chown -R airflow: /etc/supervisor/
 RUN chown -R airflow: /var/log/
 
-#RUN setfacl -m u:airflow:rwx /data
+
 
 EXPOSE 8080
 
 #ENV FERNET_KEY=kYaLE7G8dtKsVMfoIuXGl2kLvvDOzkEg0lI9ssKy7N4=
 
-#USER airflow
-#WORKDIR ${AIRFLOW_HOME}
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+USER airflow
+WORKDIR ${AIRFLOW_HOME}
+ENTRYPOINT ["/entrypoint.sh"]
+#CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

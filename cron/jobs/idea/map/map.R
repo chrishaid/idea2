@@ -1,6 +1,7 @@
+options(java.parameters = "-Xmx4g")
+
 # Load packages ####
 require(dplyr)
-require(RSQLServer)
 require(readr)
 require(lubridate)
 require(purrr)
@@ -45,7 +46,7 @@ map_cdf <- silounloadr::get_nwea('MAP$comprehensive#plus_cps')
 #                sql("SELECT * FROM MAP$comprehensive#plus_cps WHERE GrowthMeasureYN='TRUE'")
 #           )
 
-map_cdf <- collect(map_cdf)
+#map_cdf <- collect(map_cdf)
 
 flog.info("Excluding Survey only and some light munging")
  map_cdf <- map_cdf %>% 
