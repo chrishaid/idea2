@@ -46,6 +46,10 @@ RUN R -e "install.packages('httr')"
 
 RUN R -e "devtools::install_github('kippchicago/teachboostr')"
 
+RUN R -e "install.packages('dplyr')"
+
+RUN R -e "install.packages('dbplyr')"
+
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
                    clang

@@ -1,4 +1,4 @@
-FROM kippchicago/idea2-cron
+FROM kippchicago/idea2-cron:airflow
 MAINTAINER Chris Haid <chaid@kippchicago.org>
 
 # Never prompts the user for choices on installation/configuration of packages
