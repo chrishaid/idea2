@@ -93,26 +93,26 @@ RUN apt-get update &&\
 RUN   apt-get install -y supervisor
 
 # add jobs
-#RUN mkdir /jobs
-COPY jobs /jobs
+RUN mkdir /jobs
+#COPY jobs /jobs
 
 # add crontab
-COPY crontab /etc/cron.d/idea-cron
+#COPY crontab /etc/cron.d/idea-cron
 
 # ADD supervisrd.conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # set permissions
 
-RUN chmod 0644 /etc/cron.d/idea-cron
+#RUN chmod 0644 /etc/cron.d/idea-cron
 
 RUN mkdir /data && chmod 777 /data
 
 # Create the log file to be able to run tail
-RUN touch /var/log/cron.log
+#RUN touch /var/log/cron.log
 
 # load crontab
-RUN crontab /etc/cron.d/idea-cron
+#RUN crontab /etc/cron.d/idea-cron
 
 # Run the command on container startup
 

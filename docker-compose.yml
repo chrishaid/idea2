@@ -24,11 +24,12 @@ services:
       - "8787"
     ports:
       - "8787:8787"
-    volumes:
-      - ./cron/jobs:/jobs
+    #volumes:
+      #- ./cron/jobs:/jobs
       #- /data
     volumes_from:
       - data
+      - airflow
     #  - shiny
 
 
@@ -63,19 +64,22 @@ services:
     depends_on:
       - postgres
       - data
+      #- cron
     expose:
       - "8787"
     ports:
       - "8080:8080"
     volumes:
       - ./airflow/dags:/etc/airflow/dags
+      - ./airflow/jobs:/jobs
     volumes_from:
       - data
-      - cron
+      #- cron
       - shiny
     environment:
       - LOAD_EX=y
       - EXECUTOR=Local
+
     #command: webserver
 
 

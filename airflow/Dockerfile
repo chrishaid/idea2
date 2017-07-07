@@ -49,6 +49,8 @@ RUN set -ex \
         netcat \
         locales \
         vim \
+        python3-pip \
+        python3-setuptools \
     && sed -i 's/^# en_US.UTF-8 UTF-8$/en_US.UTF-8 UTF-8/g' /etc/locale.gen \
     && locale-gen \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
@@ -60,6 +62,7 @@ RUN set -ex \
     && pip install ndg-httpsclient \
     && pip install pyasn1 \
     && pip install airflow[crypto,postgres,hdfs,jdbc]==$AIRFLOW_VERSION \
+    && pip3 install requests oauth2client gcloud retrying python-dateutil ConfigParser\
     #&& pip install celery[redis]==3.1.17 \
     && apt-get remove --purge -yqq $buildDeps \
     && apt-get clean \
@@ -77,8 +80,16 @@ COPY config/airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
 # COPY supervisrd.conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+# add jobs
+COPY ./jobs /jobs
+
+# Need to copy datarobot helpers to site-packages
+#RUN mkdir /usr/local/lib/python3.5/site-packages
+RUN mv /jobs/silo/powerschool/datarobot_helpers /usr/local/lib/python3.5/dist-packages/datarobot_helpers
+
 RUN mkdir /var/log/airflow
 RUN mkdir /etc/airflow/dags
+#RUN mkdir /jobs
 
 # This next line is necessary to get everything up and running nicely.
 # Dags need to be in the dag folder for the scheduler, db, and webserver to paly nicely
