@@ -1,4 +1,4 @@
-options(java.parameters = "-Xmx4g")
+options(java.parameters = "-Xmx8g")
  
 readRenviron("/config/.Renviron")
 
@@ -26,7 +26,14 @@ flog.info("Get Contact")
 contact <- get_alumni_db("contact", collect = TRUE)
 
 flog.info("Get Account")
-account <- get_alumni_db("account", collect = TRUE)
+account <- get_alumni_db("account") %>%
+  select(id,
+         name,
+         record_type_id,
+         type,
+         adjusted_6_year_graduation_rate_c,
+         adjusted_6_year_minority_graduation_rate_c) %>%
+  collect()
 
 flog.info("Get Enrollment")
 enrollment_c <- get_alumni_db("enrollment_c", collect = TRUE)
@@ -106,8 +113,8 @@ hs_class <- function(current_grade){
 
 flog.info("Preparing data for student-level bar plot - hs applications")
   students_data_bar <- hs_applications %>%
-  filter(school %in% middle_schools,
-         class %in% hs_class(current_grade = 9)) %>%
+  filter(#school %in% middle_schools,
+         class %in% hs_class(current_grade = 10)) %>%
     group_by(id,
              last_name,
              first_name,

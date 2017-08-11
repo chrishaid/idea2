@@ -13,14 +13,13 @@
 # limitations under the License.
 
 """
-### Tutorial Documentation
-Documentation that goes along with the Airflow tutorial located
-[here](http://pythonhosted.org/airflow/tutorial.html)
+### KTC for IDEA
+Pulls KTC data for IDEA
 """
 import airflow
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
-from datetime import timedelta
+from datetime import timedelta,  datetime
 
 
 # these args will get passed on to each operator
@@ -28,12 +27,12 @@ from datetime import timedelta
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': airflow.utils.dates.days_ago(2),
+    'start_date': datetime.now(),
     'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
     'retries': 2,
-    'retry_delay': timedelta(minutes=15),
+    'retry_delay': timedelta(minutes=5),
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
     # 'priority_weight': 10,
@@ -41,7 +40,7 @@ default_args = {
     # 'wait_for_downstream': False,
     # 'dag': dag,
     # 'adhoc':False,
-    # 'sla': timedelta(hours=2),
+     'sla': timedelta(hours=3),
     # 'execution_timeout': timedelta(seconds=300),
     # 'on_failure_callback': some_function,
     # 'on_success_callback': some_other_function,
@@ -50,32 +49,13 @@ default_args = {
 }
 
 dag = DAG(
-    'idea_school_culture',
+    'idea_ktc',
     default_args=default_args,
-    description='Pulls and prepares data for the school culture page on IEA',
-    schedule_interval='30 * * * *')
+    description='Pulls and prepares data KTC and creates projections',
+    schedule_interval='0 1 * * *')
 
 # t1, t2 and t3 are examples of tasks created by instantiating operators
 t1 = BashOperator(
-    task_id='get_attendance',
-    bash_command='cd /jobs/idea/attendance && Rscript data/Attend_Enroll.R',
+    task_id='get_ktc',
+    bash_command='Rscript /jobs/idea/ktc/ktc.R',
     dag=dag)
-
-t2 = BashOperator(
-    task_id='get_transfers',
-    bash_command='Rscript /jobs/idea/transfers/transfers.R',
-    dag=dag)
-
-t3 = BashOperator(
-    task_id='get_tb_observations',
-    bash_command='Rscript /jobs/idea/observations/tb_observations.R',
-    dag=dag)
-
-t4 = BashOperator(
-    task_id='get_dl_suspensions',
-    bash_command='Rscript /jobs/idea/suspensions/dl_suspensions.R',
-    dag=dag)
-
-t2.set_upstream(t1)
-t3.set_upstream(t1)
-t4.set_upstream(t3)

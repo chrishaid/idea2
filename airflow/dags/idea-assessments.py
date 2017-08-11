@@ -13,14 +13,13 @@
 # limitations under the License.
 
 """
-### Tutorial Documentation
-Documentation that goes along with the Airflow tutorial located
-[here](http://pythonhosted.org/airflow/tutorial.html)
+### Assessemnts for IDEA
+Pulls NWEA MAP and E/W data daily
 """
 import airflow
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
-from datetime import timedelta,  datetime
+from datetime import timedelta, datetime
 
 
 # these args will get passed on to each operator
@@ -28,20 +27,20 @@ from datetime import timedelta,  datetime
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2017, 7, 11, 14, 0),
+    'start_date': datetime.now(),
     'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 3,
-    'retry_delay': timedelta(minutes=60),
+    'retries': 2,
+    'retry_delay': timedelta(minutes=15),
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
     # 'priority_weight': 10,
-    # 'end_date': datetime(2016, 1, 1),
+    'end_date': datetime.now(),
     # 'wait_for_downstream': False,
     # 'dag': dag,
     # 'adhoc':False,
-     'sla': timedelta(hours=3),
+    'sla': timedelta(hours=2),
     # 'execution_timeout': timedelta(seconds=300),
     # 'on_failure_callback': some_function,
     # 'on_success_callback': some_other_function,
@@ -50,13 +49,21 @@ default_args = {
 }
 
 dag = DAG(
-    'ktc',
+    'idea_assessments',
     default_args=default_args,
-    description='Pulls and prepares data KTC and creates projections',
-    schedule_interval='0 1 * * *')
+    description='Pulls and prepares data for MAP and E/W',
+    schedule_interval='0 6 * * *')
 
 # t1, t2 and t3 are examples of tasks created by instantiating operators
 t1 = BashOperator(
-    task_id='get_ktc',
-    bash_command='Rscript /jobs/idea/ktc/ktc.R',
+    task_id='get_map',
+    bash_command='Rscript /jobs/idea/map/map.R',
     dag=dag)
+
+t2 = BashOperator(
+    task_id='get_eureka_wheatley',
+    bash_command='Rscript /jobs/idea/eureka_wheatley/eureka_wheatley.R',
+    dag=dag)
+
+
+t2.set_upstream(t1)

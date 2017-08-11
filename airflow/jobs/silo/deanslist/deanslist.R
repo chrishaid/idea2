@@ -18,6 +18,9 @@ library(lubridate)
 
 extract_school_name <- . %>% mutate(school_name = str_extract(school_name, "K.{2,4}$"))
 
+
+sy <- today() %>% calc_academic_year(format = "short") %>% str_replace("-", "")
+
 # set up logging
 if(!dir.exists("logs")) dir.create("logs")
 flog.threshold(TRACE)
@@ -57,7 +60,7 @@ susp_df_2<-
 #function to use with object_function in gcs_upload call
 f <- function(input, output) jsonlite::write_json(input, path = output, pretty = T, dataframe = "rows")
 
-gcs_upload(susp_df_2, name = "suspensions/files/suspensions.json", 
+gcs_upload(susp_df_2, name = sprintf("suspensions/files/suspensions_%s.json", sy), 
            object_function = f,
            type = 'application/json')
 
@@ -75,7 +78,7 @@ incid_df <- bind_rows(incid_list) %>%
   clean_names %>%
   extract_school_name()
 
-gcs_upload(incid_df, name = "incidents/files/incidents.json", 
+gcs_upload(incid_df, name = sprintf("incidents/files/incidents.json", sy), 
            object_function = f,
            type = 'application/json')
 
@@ -95,7 +98,7 @@ behav_df <- bind_rows(behav_list) %>%
   clean_names %>%
   extract_school_name()
 
-gcs_upload(behav_df, name = "behaviors/files/behaviors.json", 
+gcs_upload(behav_df, name = sprintf("behaviors/files/behaviors_%s.json", sy), 
            object_function = f,
            type = 'application/json')
 

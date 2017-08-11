@@ -28,3 +28,6 @@ data/config/gcs/*.json
 
 # Rproject files
 .Rproj.user
+
+# compiled python
+*.pyc

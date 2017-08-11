@@ -20,7 +20,7 @@ Documentation that goes along with the Airflow tutorial located
 import airflow
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 
 # these args will get passed on to each operator
@@ -28,7 +28,7 @@ from datetime import timedelta
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': airflow.utils.dates.days_ago(2),
+    'start_date': datetime.now(),
     'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
@@ -50,21 +50,32 @@ default_args = {
 }
 
 dag = DAG(
-    'assessments',
+    'idea_school_culture',
     default_args=default_args,
-    description='Pulls and prepares data for MAP and E/W',
-    schedule_interval='0 6 * * *')
+    description='Pulls and prepares data for the school culture page on IEA',
+    schedule_interval='30 * * * *')
 
 # t1, t2 and t3 are examples of tasks created by instantiating operators
 t1 = BashOperator(
-    task_id='get_map',
-    bash_command='Rscript /jobs/idea/map/map.R',
+    task_id='get_attendance',
+    bash_command='cd /jobs/idea/attendance && Rscript data/Attend_Enroll.R',
     dag=dag)
 
 t2 = BashOperator(
-    task_id='get_eureka_wheatley',
-    bash_command='Rscript /jobs/idea/eureka_wheatley/eureka_wheatley.R',
+    task_id='get_transfers',
+    bash_command='Rscript /jobs/idea/transfers/transfers.R',
     dag=dag)
 
+t3 = BashOperator(
+    task_id='get_tb_observations',
+    bash_command='Rscript /jobs/idea/observations/tb_observations.R',
+    dag=dag)
+
+t4 = BashOperator(
+    task_id='get_dl_suspensions',
+    bash_command='Rscript /jobs/idea/suspensions/dl_suspensions.R',
+    dag=dag)
 
 t2.set_upstream(t1)
+t3.set_upstream(t1)
+t4.set_upstream(t3)
