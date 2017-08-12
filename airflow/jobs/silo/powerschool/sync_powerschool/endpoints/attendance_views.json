@@ -1,0 +1,5 @@
+{
+    "endpoints":[
+            {"table_name":"ps_attendance_daily", "query_expression":"att_date=ge=2016-07-01;att_date=lt=2017-07-01", "projection":"id,studentid,schoolid,att_date,attendance_codeid,att_code,att_mode_code,calendar_dayid,programid,track_a,track_b,track_c,track_d,track_e,track_f,insession,count_for_ada,presence_status_cd,cycle_day_id,cycle_day_abbreviation,total_minutes,count_for_adm"}
+        ]
+}

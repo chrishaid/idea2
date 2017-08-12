@@ -1,0 +1,13 @@
+{
+    "endpoints":[
+            {"table_name":"assignmentcategoryassoc",
+             "query_expression":"assignmentcategoryassocid=ge=0",
+             "projection":"assignmentcategoryassocid,assignmentsectionid,teachercategoryid,yearid,isprimary"},
+            {"table_name":"assignmentsection",
+             "query_expression":"duedate=ge=2016-07-01;duedate=lt=2017-07-01",
+             "projection":"assignmentsectionid,yearid,sectionsdcid,assignmentid,relatedgradescaleitemdcid,name,duedate,description,scoretype,scoreentrypoints,extracreditpoints,weight,totalpointvalue,iscountedinfinalgrade,isscoringneeded,publishoption,publishdaysbeforedue,publishonspecificdate,publisheddate,publishedscoretypeid,isscorespublish,maxretakeallowed"},
+            {"table_name":"assignmentscore",
+             "query_expression":"scoreentrydate=ge=2016-07-01;scoreentrydate=lt=2017-07-01",
+             "projection":"assignmentscoreid,yearid,assignmentsectionid,studentsdcid,islate,iscollected,isexempt,ismissing,isabsent,isincomplete,actualscoreentered,actualscorekind,actualscoregradescaledcid,scorepercent,scorepoints,scorelettergrade,scorenumericgrade,scoreentrydate,scoregradescaledcid,altnumericgrade,altalphagrade,altscoregradescaledcid,hasretake"}
+        ]
+}
