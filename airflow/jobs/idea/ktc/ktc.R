@@ -32,7 +32,8 @@ account <- get_alumni_db("account") %>%
          record_type_id,
          type,
          adjusted_6_year_graduation_rate_c,
-         adjusted_6_year_minority_graduation_rate_c) %>%
+         adjusted_6_year_minority_graduation_rate_c, 
+         parent_id) %>%
   collect()
 
 flog.info("Get Enrollment")
