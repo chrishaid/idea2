@@ -1,0 +1,9 @@
+{
+    [
+        {"table_name":"psm_assignmentcategory", "projection":"id,name,abbreviation,description,defaultpoints,defaultscoretype,includeinfinalgrades,contentgroupid,defaultextracreditpoints"},
+        {"table_name":"psm_finalgradesetup", "projection":"id,finalgradesetuptype,sectionid,reportingtermid,contentgroupid,gradingformulaid,lowscorestodiscard"},
+        {"table_name":"psm_gradingformulaweighting", "projection":"id,gradingformulaweightingtype,weighting,parentgradingformulaid,assignmentid,lowscorestodiscard,assignmentcategoryid,reportingtermid,reportcarditemid"},
+        {"table_name":"sync_sectionmap", "projection":"dcid,id,sectionsdcid,sectionid,created,lastupdated"},
+        {"table_name":"psm_reportingterm", "projection":"id,name,isbasedontermdates,startdate,enddate,termid,parentreportingtermid"}
+    ]
+}

@@ -1,0 +1,5 @@
+{
+    "endpoints":[
+            {"table_name":"attendance", "query_expression":"yearid==26", "projection":"dcid,id,attendance_codeid,calendar_dayid,schoolid,yearid,studentid,ccid,periodid,parent_attendanceid,att_mode_code,att_comment,att_interval,prog_crse_type,lock_teacher_yn,lock_reporting_yn,transaction_type,total_minutes,att_date,ada_value_code,ada_value_time,adm_value,programid,att_flags,whomodifiedid,whomodifiedtype,ip_address"}
+        ]
+}

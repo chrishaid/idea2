@@ -14,13 +14,13 @@ RUN apt-get update -y && apt-get install -y  \
 
 RUN R -e "install.packages('tidyverse')"
 
-RUN R -e "devtools::install_github('hadley/dplyr')"
+#RUN R -e "devtools::install_github('hadley/dplyr')"
 
 RUN R -e "install.packages(c('ETLUtils', 'RJDBC'))"
 
-RUN R -e "devtools::install_github('imanuelcostigan/RSQLServer')"
+RUN R -e "install.packages('RSQLServer')"
 
-RUN R -e "devtools::install_github('jennybc/googlesheets')"
+RUN R -e "install.packages('googlesheets')"
 
 RUN R -e "devtools::install_github('almartin82/mapvizieR')"
 
@@ -45,6 +45,10 @@ RUN R -e "install.packages('curl')"
 RUN R -e "install.packages('httr')"
 
 RUN R -e "devtools::install_github('kippchicago/teachboostr')"
+
+RUN R -e "install.packages('dplyr')"
+
+RUN R -e "install.packages('dbplyr')"
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
@@ -89,26 +93,26 @@ RUN apt-get update &&\
 RUN   apt-get install -y supervisor
 
 # add jobs
-#RUN mkdir /jobs
-COPY jobs /jobs
+RUN mkdir /jobs
+#COPY jobs /jobs
 
 # add crontab
-COPY crontab /etc/cron.d/idea-cron
+#COPY crontab /etc/cron.d/idea-cron
 
 # ADD supervisrd.conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # set permissions
 
-RUN chmod 0644 /etc/cron.d/idea-cron
+#RUN chmod 0644 /etc/cron.d/idea-cron
 
 RUN mkdir /data && chmod 777 /data
 
 # Create the log file to be able to run tail
-RUN touch /var/log/cron.log
+#RUN touch /var/log/cron.log
 
 # load crontab
-RUN crontab /etc/cron.d/idea-cron
+#RUN crontab /etc/cron.d/idea-cron
 
 # Run the command on container startup
 

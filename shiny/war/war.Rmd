@@ -236,8 +236,8 @@ att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
     weekly <- ada_weekly()
 
     # filter by date
-    daily2 <- daily %>% filter(date %within% att_int)
-    weekly2 <- weekly %>% filter(date %within% att_int)
+    daily2 <- daily %>% filter(date %within% att_int) %>% as.data.frame()
+    weekly2 <- weekly %>% filter(date %within% att_int) %>% as.data.frame()
 
     enroll_attend_plot(daily2, weekly2)
 
@@ -251,13 +251,14 @@ att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
                        })
 
 
-  p_histo <- reactive(student_histogram(students_filtered()))
+  p_histo <- reactive(student_histogram(students_filtered() %>%
+                        as.data.frame()))
 
   output$student_histogram <- renderPlot(p_histo())
 
 
   output$students <- DT::renderDataTable({
-                        p_data <- p_histo()$data
+                        p_data <- p_histo()$data %>% as.data.frame()
 
                         x <- brushedPoints(p_data, input$plot_brush)
 
