@@ -89,7 +89,9 @@ RUN mv /jobs/silo/powerschool/datarobot_helpers /usr/local/lib/python3.5/dist-pa
 
 RUN mkdir /var/log/airflow
 RUN mkdir /etc/airflow/dags
-#RUN mkdir /jobs
+
+# add dags
+COPY ./dags /etc/airflow/dags
 
 # This next line is necessary to get everything up and running nicely.
 # Dags need to be in the dag folder for the scheduler, db, and webserver to paly nicely
