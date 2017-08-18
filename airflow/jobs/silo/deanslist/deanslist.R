@@ -1,3 +1,4 @@
+options(java.parameters = "-Xmx8g")
 setwd("/jobs/silo/deanslist")
 
 readRenviron("/config/.Renviron")
