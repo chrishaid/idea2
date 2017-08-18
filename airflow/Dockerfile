@@ -100,7 +100,7 @@ RUN chown -R airflow: ${AIRFLOW_HOME}
 RUN chown -R airflow: /etc/supervisor/
 RUN chown -R airflow: /var/log/
 #RUN chown -R airflow: /jobs
-
+RUN chmod -R a+rw /jobs
 #add
 RUN echo 'airflow ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers
 
