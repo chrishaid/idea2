@@ -36,7 +36,7 @@ default_args = {
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
     # 'priority_weight': 10,
-    'end_date': datetime.now(),
+    #'end_date': datetime.now(),
     # 'wait_for_downstream': False,
     # 'dag': dag,
     # 'adhoc':False,
