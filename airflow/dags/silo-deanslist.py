@@ -27,7 +27,7 @@ from datetime import timedelta, datetime
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime.now(),
+    'start_date': datetime(2017, 8, 24, 0, 0),
     'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
@@ -52,7 +52,7 @@ dag = DAG(
     'silo_deanslist',
     default_args=default_args,
     description='Pulls and prepares data from TB and send to GCS',
-    schedule_interval='0 * * * *')
+    schedule_interval='*/30 * * * *')
 
 
 t1 = BashOperator(

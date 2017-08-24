@@ -24,5 +24,6 @@ while ! nc -z $POSTGRES_HOST $POSTGRES_PORT >/dev/null 2>&1 < /dev/null; do
 done
 
 echo "Initialize database..."
- $CMD initdb
- exec exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+$CMD initdb
+echo "Startign supervisord..."
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

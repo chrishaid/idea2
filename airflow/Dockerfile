@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV TERM linux
 
 # Airflow
-ARG AIRFLOW_VERSION=1.8.0
+ARG AIRFLOW_VERSION=1.8.1
 ARG AIRFLOW_HOME=/etc/airflow
 
 #Postgres
@@ -61,7 +61,7 @@ RUN set -ex \
     && pip install pyOpenSSL \
     && pip install ndg-httpsclient \
     && pip install pyasn1 \
-    && pip install airflow[crypto,postgres,hdfs,jdbc]==$AIRFLOW_VERSION \
+    && pip install apache-airflow[crypto,postgres,hdfs,jdbc]==$AIRFLOW_VERSION \
     && pip3 install requests oauth2client gcloud retrying python-dateutil ConfigParser\
     #&& pip install celery[redis]==3.1.17 \
     && apt-get remove --purge -yqq $buildDeps \
