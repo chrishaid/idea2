@@ -5,6 +5,7 @@
 # config files used by cron/airflow
 *.dcf
 *config.py
+!powerschool_config.py
 
 # OS X bs
 .DS_Store
