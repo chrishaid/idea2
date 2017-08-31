@@ -28,11 +28,11 @@ from datetime import timedelta, datetime
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime.now(),
+    'start_date': datetime(2017, 8, 24, 0, 0),
     'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 0,
+    'retries': 3,
     'retry_delay': timedelta(minutes=2),
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
@@ -41,7 +41,7 @@ default_args = {
     # 'wait_for_downstream': False,
     # 'dag': dag,
     # 'adhoc':False,
-     'sla': timedelta(minutes=20),
+     'sla': timedelta(minutes=60),
     # 'execution_timeout': timedelta(seconds=300),
     # 'on_failure_callback': some_function,
     # 'on_success_callback': some_other_function,
@@ -53,7 +53,7 @@ dag = DAG(
     'silo_ps_daily',
     default_args=default_args,
     description='Pulls and prepares data attendance data from PS API',
-    schedule_interval='0 * * * *')
+    schedule_interval='0 5 * * *')
 
 # t1, t2 and t3 are examples of tasks created by instantiating operators
 t1 = BashOperator(

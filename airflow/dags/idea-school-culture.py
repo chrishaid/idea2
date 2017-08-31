@@ -28,7 +28,7 @@ from datetime import timedelta, datetime
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime.now(),
+    'start_date': datetime(2017, 8, 24, 0, 0),
     'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
@@ -53,7 +53,7 @@ dag = DAG(
     'idea_school_culture',
     default_args=default_args,
     description='Pulls and prepares data for the school culture page on IEA',
-    schedule_interval='30 * * * *')
+    schedule_interval='*/15 * * * *')
 
 # t1, t2 and t3 are examples of tasks created by instantiating operators
 t1 = BashOperator(

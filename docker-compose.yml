@@ -77,7 +77,7 @@ services:
       #- cron
       - shiny
     environment:
-      - LOAD_EX=y
+      - LOAD_EX=n
       - EXECUTOR=Local
 
     #command: webserver
