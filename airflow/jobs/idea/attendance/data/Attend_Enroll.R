@@ -20,7 +20,7 @@ schools <- data_frame(schoolid = c(78102, 7810, 400146, 400163, 4001802, 400180)
                       schoolabbreviation =c("KAP", "KAMS", "KCCP", "KBCP", "KOP", "KOA"))
 
 first_day <- config$FIRST_DAY
-first_day <- '2017-03-01'
+first_day <- '2017-08-21'
 # Connect to Silo ####
 # silo_ps_db <- src_sqlserver(server =  config$SILO_URL,
 #                              database = config$SILO_DBNAME_PS,
@@ -30,7 +30,7 @@ first_day <- '2017-03-01'
 # Get students ####
 #students <- tbl(silo_ps_db, "students") %>% collect()
 
-students <- get_ps("students") %>% 
+students <- get_ps("students") %>%
   collect()
 
 # Get attendance ####

@@ -25,7 +25,7 @@ config <- as.data.frame(read.dcf("/config/config.dcf"),
 # Get students ####
 students <-get_ps("students")
 
-hsr_dates <- c(ymd("161004"), ymd("151001") - years(0:1))
+hsr_dates <- c(ymd("171004"), ymd("161001") - years(0:1))
 
 
 membs_list <- hsr_dates %>%
