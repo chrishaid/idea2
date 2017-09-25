@@ -32,7 +32,7 @@ default_args = {
     'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 6,
+    'retries': 1,
     'retry_delay': timedelta(minutes=2),
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
@@ -53,7 +53,7 @@ dag = DAG(
     'silo_get_load_attendance',
     default_args=default_args,
     description='Pulls and prepares data attendance data from PS API',
-    schedule_interval='*/15 * * * *')
+    schedule_interval='*/30 * * * *')
 
 # t1, t2 and t3 are examples of tasks created by instantiating operators
 t1 = BashOperator(

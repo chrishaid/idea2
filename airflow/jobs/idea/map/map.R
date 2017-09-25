@@ -1,4 +1,4 @@
-options(java.parameters = "-Xmx4g")
+options(java.parameters = "-Xmx8g")
 
 # Load packages ####
 require(dplyr)
@@ -27,7 +27,7 @@ config <- as.data.frame(read.dcf("/config/config.dcf"),
 
 
 schools <- data_frame(schoolid = c(78102, 7810, 400146, 400163, 4001802, 400180),
-                      schoolname = c("Ascend Primary", "Ascend Middle", "Create", "Bloom", "One Primary", "One Academy"),
+                      schoolname = c("Ascend Primary", "Ascend Middle", "KAC/KCCP", "Bloom", "One Primary", "One Academy"),
                       schoolabbreviation =c("KAP", "KAMS", "KCCP", "KBCP", "KOP", "KOA"))
 
 first_day <- config$FIRST_DAY
@@ -49,13 +49,13 @@ map_cdf <- silounloadr::get_nwea('MAP$comprehensive#plus_cps')
 #map_cdf <- collect(map_cdf)
 
 flog.info("Excluding Survey only and some light munging")
- map_cdf <- map_cdf %>% 
+ map_cdf <- map_cdf %>%
   mutate(TestType = if_else(is.na(TestType), "Survey With Goals", TestType),
          TestID = as.character(TestID)) %>%
   filter(TestType == "Survey With Goals",
          GrowthMeasureYN == 'TRUE') %>%
   mutate(TestStartDate = as.character(mdy(TestStartDate)),
-         TestID = if_else(is.na(TestID),  
+         TestID = if_else(is.na(TestID),
                           paste(StudentID, MeasurementScale, TestStartDate, TestDurationMinutes, sep = "_"),
                           TestID))
 
@@ -81,7 +81,7 @@ flog.info("Get current PowerSchool Roster")
 
 
 stus <- silounloadr::get_ps("students")
-current_ps <- stus %>% 
+current_ps <- stus %>%
   filter(ENROLL_STATUS == 0)
 #               sql("SELECT * FROM PS_mirror..Students WHERE Enroll_Status=0")
 #               )
