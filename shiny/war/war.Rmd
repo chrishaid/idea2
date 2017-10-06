@@ -46,8 +46,8 @@ grades <- list(KAP = 0:5,
                KAMS = 6:8,
                KCCP = 5:8,
                KBCP = 5:8,
-               KOP = 0,
-               KOA = 5)
+               KOP = 0:1,
+               KOA = 5:6)
 
 month_order <- c("Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep")               
 
@@ -55,7 +55,7 @@ source('lib/attendance_helpers.R')
 
 # ADA goals for each school
 goals <- data_frame(schoolabbreviation =  c("KAP", "KAMS", "KCCP", "KBCP", "KOP", "KOA"),
-                    goal = c(.96))
+                    goal = c(.98))
 
 firstday <- ymd(config$FIRST_DAY)
 lastXweeks <- ymd(as.character(floor_date(today() - weeks(6), unit="week")+1))
@@ -332,45 +332,6 @@ att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
 ```
 
 
-```{r server_transfers, include = FALSE}
-output$transfer_plot <- renderPlot({
-
-
-    todays_month <- month(today(), label = TRUE, abbr = TRUE) %>%
-      factor(levels = month_order, ordered = TRUE)
-
-    transfer_scale <- c(scales::brewer_pal("qual", palette = 3)(nrow(transfer_reasons)-3),
-                        "gray",
-                        "lightgray"
-                        )
-
-
-    ggplot(transfers_by_month_2 %>%
-             filter(!(month > todays_month &
-                      sy == "2016-2017")
-                    ),
-           aes(x = month, y=cum_transfers_2)) +
-      geom_bar(aes(fill = factor(reason), y=cum_transfers_2),
-                position = "stack",
-                stat = "identity") +
-      geom_segment(data = transfer_goals,
-                   aes(x=1, xend=12,
-                       y=monthly_goal, yend= yearly_goal),
-                   alpha = .6,
-                   color = "purple") +
-      facet_grid(sy ~ school_name) +
-      scale_fill_manual(values = transfer_scale) +
-      theme_light() +
-      theme(axis.text.x = element_text(angle=45, hjust = 1)) +
-      labs(fill = "Transfer\nReason",
-           x = "Month",
-           y = "Cumulative transfers\n(count)")
-
-    })
-
-
-```
-
 ```{r server_suspensions, include=FALSE}
 todays_month<-factor(as.character(month(today(),
                                         label = TRUE)
@@ -518,7 +479,7 @@ more detail on the students represented in each bar
 Column
 -----------------------------------------------------------------------
 
-### Distribution of Inidividual Student Average Daily Attendance
+### Distribution of Individual Student Average Daily Attendance
 ```{r}
  plotOutput("student_histogram",
                       brush = brushOpts(
@@ -562,7 +523,38 @@ Column {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 ### Cumulative Transfers to Date
 ```{r}
-plotOutput("transfer_plot")
+renderPlot({
+
+
+    todays_month <- month(today(), label = TRUE, abbr = TRUE) %>%
+      factor(levels = month_order, ordered = TRUE)
+
+    transfer_scale <- c(scales::brewer_pal("qual", palette = 3)(nrow(transfer_reasons)-1),
+                        "gray",
+                        "lightgray"
+                        )
+    transfer_goals <- transfer_goals %>% ungroup() %>% mutate(sy = factor(sy, ordered = TRUE))
+
+    ggplot(transfers_by_month_2 %>%
+             dplyr::filter(!(month==todays_month &&
+                      sy == "2017-2018")),
+           aes(x = month, y=cum_transfers_2)) +
+      geom_bar(aes(fill = reason, y=cum_transfers_2),
+                position = "stack",
+                stat = "identity") +
+      geom_segment(data = transfer_goals,
+                   aes(x=1, xend=12,
+                       y=monthly_goal, yend= yearly_goal),
+                   alpha = .6,
+                   color = "purple") +
+      facet_grid(sy ~ school_name) +
+      scale_fill_manual(values = transfer_scale) +
+      theme_light() +
+      theme(axis.text.x = element_text(angle=45, hjust = 1)) +
+      labs(fill = "Transfer\nReason",
+           x = "Month",
+           y = "Cumulative transfers\n(count)")
+  })
 ```
 
 ### Historical Transfers by Month
