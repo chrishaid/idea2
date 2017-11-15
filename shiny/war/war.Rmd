@@ -54,7 +54,7 @@ month_order <- c("Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
 source('lib/attendance_helpers.R')
 
 # ADA goals for each school
-goals <- data_frame(schoolabbreviation =  c("KAP", "KAMS", "KCCP", "KBCP", "KOP", "KOA"),
+goals <- data_frame(schoolabbreviation =  c("KAP", "KAMS", "KAC/KCCP", "KBCP", "KOP", "KOA"),
                     goal = c(.98))
 
 firstday <- ymd(config$FIRST_DAY)
@@ -332,6 +332,7 @@ att_date_range <- reactive(input$att_dates[[1]] %--% input$att_dates[[2]])
 ```
 
 
+
 ```{r server_suspensions, include=FALSE}
 todays_month<-factor(as.character(month(today(),
                                         label = TRUE)
@@ -345,11 +346,12 @@ susp_plot_data_2 <- susp_plot_data %>%
   tidyr::complete(School, SY, Month, Type) %>%
   group_by(School, SY, Type) %>%
   mutate(Cum_N_2 = zoo::na.locf(Cum_N, na.rm=FALSE),
-         Cum_N_3 = ifelse(is.na(Cum_N_2), 0, Cum_N_2),
-         Cum_N_4 = ifelse(SY=="SY16-17" &
-                            as.integer(Month)>as.integer(todays_month),
-                          NA,
-                          Cum_N_3))
+         Cum_N_4 = ifelse(is.na(Cum_N_2), 0, Cum_N_2)#,
+         #Cum_N_4 = ifelse(SY=="SY17-18" &
+         #                  as.integer(Month)>as.integer(todays_month),
+         #                  NA,
+         #                  Cum_N_3)
+                          )
 
 oss_combined <- susp_plot_data %>%
   select(school_name = School,
@@ -364,8 +366,7 @@ oss_combined <- susp_plot_data %>%
               select(school_name,
                      month,
                      N_susps,
-                     cum_susps, month_year) %>%
-              mutate(SY="SY16-17")
+                     cum_susps, month_year, SY)
   ) %>%
   arrange(month_year) %>%
   mutate(month = factor(as.character(month),
@@ -581,7 +582,7 @@ Inputs {.sidebar}
 selectInput("susp_years_2",
          "Select School Year",
          choices = unique(oss_combined$SY),
-         selected = c("SY16-17"),
+         selected = c("SY17-18"),
          multiple = TRUE)    
 ```
 
@@ -603,14 +604,15 @@ output$selected_oss <-  renderTable({
     mutate(int_month = as.integer(month),
            startdate = as.character(startdate)) %>%
    filter(school_name == school,
-          as.integer(month) == selected_month) %>%  
-    select('Last Name' = studentlast,
-           'First Name' = studentfirst,
+          as.integer(month) == selected_month,
+          SY == sy) %>%  
+    select('Last Name' = student_last,
+           'First Name' = student_first,
            Grade = gradelevelshort,
            Date = startdate,
            School = school_name,
            Category = category,
-           Details = reporteddetails
+           Summary = adminsummary
            ) %>%
     arrange(desc(Date))
 
@@ -655,7 +657,7 @@ fillCol(flex = c(.5,.5),
 
 oss_rates_cps <- tibble::tribble(
   ~school_name, ~period, ~susp_rate,
-  "CPS", "Semester 1 (All)", 3.4,
+  "CPS", "Semester 1 (All)", 3.14,
   "CPS", "EOY (All)", 8.08,
 
   "CPS", "Semester 1 (AA)", 6.24,
@@ -665,6 +667,7 @@ oss_rates_cps <- tibble::tribble(
 
 renderPlot(
   oss_regional %>%
+    filter(SY %in% input$susp_years_2) %>%
   ggplot(aes(x=school_name, y=cum_susp_rate)) +
     geom_col(aes(group = school_name, fill = regional), show.legend = FALSE) +
     geom_text(aes(label = round(cum_susp_rate,1)), vjust = 1, color = "white") +
@@ -695,13 +698,13 @@ output$selected_iss <-  renderTable({
           startdate = as.character(startdate)) %>%
    filter(school_name == school_iss,
           as.integer(month) == selected_month_iss) %>%  
-    select('Last Name' = studentlast,
-           'First Name' = studentfirst,
+    select('Last Name' = student_last,
+           'First Name' = student_first,
            Grade = gradelevelshort,
            Date = startdate,
            School = school_name,
            Category = category,
-           Details = reporteddetails
+           Summary = adminsummary
            ) %>%
     arrange(desc(Date))
 
@@ -709,10 +712,11 @@ output$selected_iss <-  renderTable({
 
 
 output$iss <-renderPlot({
-  ggplot(iss_rates, aes(x = month, y=cum_susps)) +
-  geom_col(aes(group = school_name)) +
+  ggplot(as.data.frame(iss_rates), aes(x = month, y=cum_susps)) +
+  geom_col() +
   geom_col(aes(y=N_susps), fill = "black", width=.5) +
-  facet_grid(.~school_name) +
+  #facet_grid(. ~ school_name) +
+  facet_grid(. ~ school_name) +
   theme_linedraw() +
   labs(x = "",
        y = "In School Suspensions")
@@ -734,9 +738,9 @@ fillCol(flex = c(.5,.5),
 
 output$days_hist <- renderPlot({
   oss %>%
-    select(studentid,
-           studentlast,
-           studentfirst,
+    select(student_number,
+           student_last,
+           student_first,
            school_name,
            numdays) %>%
   ggplot(aes(x = as.integer(numdays))) +
@@ -752,9 +756,9 @@ output$days_hist <- renderPlot({
 
  output$sups_dt <-DT::renderDataTable({
     oss %>%
-        group_by(studentid,
-                 studentlast,
-                 studentfirst,
+        group_by(student_number,
+                 student_last,
+                 student_first,
                  school_name,
                  gradelevelshort) %>%
         summarize(N = n(),
@@ -764,8 +768,8 @@ output$days_hist <- renderPlot({
          dplyr::select(
            School = school_name,
            Grade = gradelevelshort,
-           Last  = studentlast,
-           First  = studentfirst,
+           Last  = student_last,
+           First  = student_first,
            Suspensions = N,
            'Days Suspended' = days_suspended
            )

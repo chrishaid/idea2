@@ -72,8 +72,7 @@ flog.info("Get attendence table")
 
 attendance <- get_powerschool("attendance") %>%
   filter(yearid >= ps_sy_termid,
-         att_mode_code == "ATT_ModeDaily",
-         !`_fivetran_deleted`) %>%
+         att_mode_code == "ATT_ModeDaily") %>%
   drop_fivetran_cols() %>%
   select(schoolid, 
          studentid, 
@@ -85,8 +84,7 @@ attendance <- get_powerschool("attendance") %>%
 flog.info("Get membership table")  
 
 membership <- get_powerschool("ps_membership_defaults") %>%
-  filter(yearid >= ps_sy_termid,
-         !`_fivetran_deleted`) %>%
+  filter(yearid >= ps_sy_termid) %>%
   drop_fivetran_cols() %>%
   select(studentid,
          schoolid,

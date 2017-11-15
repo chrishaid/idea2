@@ -25,7 +25,7 @@ config <- as.data.frame(read.dcf("/config/config.dcf"),
 # Get students ####
 students <-get_ps("students")
 
-hsr_dates <- c(ymd("171004"), ymd("161001") - years(0:1))
+hsr_dates <- c(ymd("171002"), ymd("161004"), ymd("151001"))
 
 
 membs_list <- hsr_dates %>%
@@ -104,7 +104,8 @@ month_factor <- factor(month_order, levels = month_order, ordered = TRUE)
 scaffold <- expand.grid(sy = unique(transfers_by_day_by_code$sy),
                         schoolid.x = unique(transfers_by_day_by_code$schoolid.x),
                         exit_month = month_factor,
-                        exitcode = unique(transfers_by_day_by_code$exitcode))
+                        exitcode = unique(transfers_by_day_by_code$exitcode),
+                        stringsAsFactors = FALSE)
 
 
 transfers_by_month_2 <- scaffold %>%

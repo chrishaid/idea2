@@ -1,4 +1,4 @@
-options(java.parameters = "-Xmx8g")
+options(java.parameters = "-Xmx10g")
 setwd("/jobs/silo/deanslist")
 
 readRenviron("/config/.Renviron")
@@ -19,8 +19,18 @@ library(lubridate)
 
 extract_school_name <- . %>% mutate(school_name = str_extract(school_name, "K.{2,4}$"))
 
+todays_date <- today()
+#todays_date <- ymd("2016-10-21")
+sy <- todays_date  %>% calc_academic_year(format = "short") %>% str_replace("-", "")
 
-sy <- today() %>% calc_academic_year(format = "short") %>% str_replace("-", "")
+sy_start <- todays_date %>% 
+  calc_academic_year(format = "first_year") %>%
+  sprintf("%s-08-01", .)
+
+sy_end <- todays_date %>% 
+  calc_academic_year(format = "second_year") %>%
+  sprintf("%s-07-31", .)
+
 
 # set up logging
 if(!dir.exists("logs")) dir.create("logs")
@@ -30,7 +40,7 @@ flog.appender(appender.tee("logs/deanslist.log"))
 flog.info("Connecting to and pulling deanslist suspension data")
 
 
-susp_list <- ftry(get_suspensions(domain = "kippchicago"))
+susp_list <- ftry(get_suspensions(domain = "kippchicago", std = sy_start, edt=sy_end))
 
 flog.info("suspensions data successfully pulled for keys %s",
           paste(names(susp_list), collapse = "\n "))
@@ -68,7 +78,7 @@ gcs_upload(susp_df_2, name = sprintf("suspensions/files/suspensions_%s.json", sy
 flog.info("Pulling deanslist incidents data")
 
 
-incid_list <- ftry(get_incidents(domain = "kippchicago"))
+incid_list <- ftry(get_incidents(domain = "kippchicago", std = sy_start, edt = sy_end))
 
 flog.info("Incident data successfully pulled for keys %s",
           paste(names(incid_list), collapse = "\n "))
@@ -79,7 +89,7 @@ incid_df <- bind_rows(incid_list) %>%
   clean_names %>%
   extract_school_name()
 
-gcs_upload(incid_df, name = sprintf("incidents/files/incidents.json", sy), 
+gcs_upload(incid_df, name = sprintf("incidents/files/incidents_%s.json", sy), 
            object_function = f,
            type = 'application/json')
 
@@ -87,14 +97,14 @@ flog.info("Pulling deanslist behavior data")
 
 
 
-behav_list <- ftry(get_behaviors(domain = "kippchicago", sdt = "2016-08-22", edt=today()))
+behav_list <- ftry(get_behaviors(domain = "kippchicago",  sdt = sy_start, edt = sy_end))
 
 
 flog.info("Behavior data successfully pulled for keys %s",
           paste(names(behav_list), collapse = "\n "))
 
 
-flog.info("Uploading deanslist behavior data ot GCS")
+flog.info("Uploading deanslist behavior data to GCS")
 behav_df <- bind_rows(behav_list) %>%
   clean_names %>%
   extract_school_name()
@@ -104,3 +114,4 @@ gcs_upload(behav_df, name = sprintf("behaviors/files/behaviors_%s.json", sy),
            type = 'application/json')
 
 flog.info("All uploads complete.")
+
