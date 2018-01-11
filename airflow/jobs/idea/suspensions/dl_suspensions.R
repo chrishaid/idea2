@@ -93,7 +93,7 @@ flog.info('Calculating OSS Rates')
 
 oss_2<-oss %>%  
   mutate(startdate = if_else(is.na(startdate), 
-                             ymd_hms(oss$createts_date) +days(1), 
+                             ymd_hms(oss$issuets_date) +days(1), 
                              ymd_hms(sprintf("%s 00:00:00", startdate)))) %>%
   arrange(startdate) %>%
   #filter(startdate >= ymd("2017-08-24")) %>%
@@ -138,7 +138,7 @@ iss <- susps %>%
 
 iss_2<-iss %>%  
   mutate(startdate = if_else(is.na(startdate), 
-                             ymd_hms(iss$createts_date) +days(1), 
+                             ymd_hms(iss$issuets_date) +days(1), 
                              ymd_hms(sprintf("%s 00:00:00", startdate)))) %>%
   arrange(startdate) %>%
 #  filter(startdate >= ymd("2017-08-24")) %>%

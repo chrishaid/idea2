@@ -23,11 +23,11 @@ todays_date <- today()
 #todays_date <- ymd("2016-10-21")
 sy <- todays_date  %>% calc_academic_year(format = "short") %>% str_replace("-", "")
 
-sy_start <- todays_date %>% 
+sy_start <- todays_date %>%
   calc_academic_year(format = "first_year") %>%
   sprintf("%s-08-01", .)
 
-sy_end <- todays_date %>% 
+sy_end <- todays_date %>%
   calc_academic_year(format = "second_year") %>%
   sprintf("%s-07-31", .)
 
@@ -55,23 +55,23 @@ susp_df <- bind_rows(susp_list) %>%
   clean_names() %>%
   extract_school_name()
 
-susp_rows <- susp_df$penalties %>% 
-  map_lgl(~ifelse('IsSuspension' %in% names(.x), 
-                  grepl("TRUE",.[['IsSuspension']]), 
+susp_rows <- susp_df$penalties %>%
+  map_lgl(~ifelse('IsSuspension' %in% names(.x),
+                  grepl("TRUE",.[['IsSuspension']]),
                   FALSE
   )
   )
 
 susp_df_2<-
-  susp_df  %>% 
+  susp_df  %>%
   filter(susp_rows) %>%
-  mutate(types = 
+  mutate(types =
            penalties %>% map_chr(~paste(.x$PenaltyName, collapse = ", ")))
 
 #function to use with object_function in gcs_upload call
 f <- function(input, output) jsonlite::write_json(input, path = output, pretty = T, dataframe = "rows")
 
-gcs_upload(susp_df_2, name = sprintf("suspensions/files/suspensions_%s.json", sy), 
+gcs_upload(susp_df_2, name = sprintf("suspensions/files/suspensions_%s.json", sy),
            object_function = f,
            type = 'application/json')
 
@@ -89,7 +89,7 @@ incid_df <- bind_rows(incid_list) %>%
   clean_names %>%
   extract_school_name()
 
-gcs_upload(incid_df, name = sprintf("incidents/files/incidents_%s.json", sy), 
+gcs_upload(incid_df, name = sprintf("incidents/files/incidents_%s.json", sy),
            object_function = f,
            type = 'application/json')
 
@@ -109,9 +109,8 @@ behav_df <- bind_rows(behav_list) %>%
   clean_names %>%
   extract_school_name()
 
-gcs_upload(behav_df, name = sprintf("behaviors/files/behaviors_%s.json", sy), 
+gcs_upload(behav_df, name = sprintf("behaviors/files/behaviors_%s.json", sy),
            object_function = f,
            type = 'application/json')
 
 flog.info("All uploads complete.")
-
