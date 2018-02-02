@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-### DeansList
-Moves data from DeansList API to Silo (BQ edition) via GCS
+### NWEA MAP
+Moves data from NWEA MAP API to Silo (BQ edition) via GCS
 """
 import airflow
 from airflow import DAG
@@ -27,7 +27,7 @@ from datetime import timedelta, datetime
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2017, 8, 24, 0, 0),
+    'start_date': datetime(2018, 2, 1, 0, 0),
     'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
@@ -49,13 +49,13 @@ default_args = {
 }
 
 dag = DAG(
-    'silo_deanslist',
+    'silo_nwea_map',
     default_args=default_args,
-    description='Pulls and prepares data from DeansList and send to GCS',
-    schedule_interval='*/30 * * * *')
+    description='Pulls and prepares data from NWEA and sends to GCS',
+    schedule_interval='5 5 * * *')
 
 
 t1 = BashOperator(
-    task_id='silo-deanslist',
-    bash_command='Rscript /jobs/silo/deanslist/deanslist.R',
+    task_id='silo-nwea-map',
+    bash_command='Rscript /jobs/silo/nwea_map/nwea_map.R',
     dag=dag)

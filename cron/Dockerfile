@@ -36,7 +36,7 @@ RUN R -e "install.packages('futile.logger')"
 
 RUN R -e "install.packages('googleCloudStorageR')"
 
-RUN R -e "install.packages('janitor')"
+RUN R -e "devtools::install_github('sfirke/janitor')"
 
 RUN R -e "devtools::install_github('kippchicago/silounloadr')"
 

@@ -54,7 +54,7 @@ month_order <- c("Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
 source('lib/attendance_helpers.R')
 
 # ADA goals for each school
-goals <- data_frame(schoolabbreviation =  c("KAP", "KAMS", "KAC/KCCP", "KBCP", "KOP", "KOA"),
+goals <- data_frame(schoolabbreviation =  c("KAP", "KAMS", "KCCP", "KBCP", "KOP", "KOA"),
                     goal = c(.98))
 
 firstday <- ymd(config$FIRST_DAY)
@@ -712,6 +712,9 @@ output$selected_iss <-  renderTable({
 
 
 output$iss <-renderPlot({
+
+  iss_rates <- iss_rates %>%
+
   ggplot(as.data.frame(iss_rates), aes(x = month, y=cum_susps)) +
   geom_col() +
   geom_col(aes(y=N_susps), fill = "black", width=.5) +

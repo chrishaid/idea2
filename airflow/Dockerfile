@@ -1,4 +1,4 @@
-FROM kippchicago/idea2-cron:airflow
+FROM kippchicago/idea2-cron:latest
 MAINTAINER Chris Haid <chaid@kippchicago.org>
 
 # Never prompts the user for choices on installation/configuration of packages
@@ -85,7 +85,7 @@ COPY ./jobs /jobs
 
 # Need to copy datarobot helpers to site-packages
 #RUN mkdir /usr/local/lib/python3.5/site-packages
-RUN mv /jobs/silo/powerschool/datarobot_helpers /usr/local/lib/python3.5/dist-packages/datarobot_helpers
+RUN mv /jobs/silo/powerschool/datarobot_helpers /usr/local/lib/python3.4/dist-packages/datarobot_helpers
 
 RUN mkdir /var/log/airflow
 RUN mkdir /etc/airflow/dags
