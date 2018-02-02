@@ -36,8 +36,6 @@ RUN R -e "install.packages('futile.logger')"
 
 RUN R -e "install.packages('googleCloudStorageR')"
 
-RUN R -e "devtools::install_github('sfirke/janitor')"
-
 RUN R -e "devtools::install_github('kippchicago/silounloadr')"
 
 RUN R -e "install.packages('curl')"
@@ -49,6 +47,8 @@ RUN R -e "devtools::install_github('kippchicago/teachboostr')"
 RUN R -e "install.packages('dplyr')"
 
 RUN R -e "install.packages('dbplyr')"
+
+RUN R -e "devtools::install_github('sfirke/janitor')"
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
