@@ -6,6 +6,8 @@ require(lubridate)
 require(purrr)
 require(stringr)
 require(futile.logger)
+library(tidyverse)
+library(lubridate)
 
 # set up logging
 setwd("/jobs/idea/attendance")
@@ -46,15 +48,13 @@ clean_bq_col_names <- function(.data) {
   old_names <- names(.data)
   new_names <- old_names %>% str_replace("^.{10}_", "")
   names(.data) <- new_names
-  
+
   # return
   .data
 }
+
 flog.info("Connect to Silo/BQ")
 bigrquery::set_service_token("/config/bq/kipp-chicago-silo-2-aa786970aefd.json")
-
-
-
 
 flog.info("Get students table")
 
@@ -62,28 +62,28 @@ students <- get_powerschool("students") %>%
   drop_fivetran_cols() %>%
   select(id,
          student_number,
-         lastfirst, 
+         lastfirst,
          home_room,
          enroll_status) %>%
   collect()
 
 
-flog.info("Get attendence table") 
+flog.info("Get attendence table")
 
 attendance <- get_powerschool("attendance") %>%
   filter(yearid >= ps_sy_termid,
          att_mode_code == "ATT_ModeDaily") %>%
   drop_fivetran_cols() %>%
-  select(schoolid, 
-         studentid, 
+  select(schoolid,
+         studentid,
          date = att_date,
          attendance_codeid,
          yearid) %>%
   collect()
 
-flog.info("Get membership table")  
+flog.info("Get membership table")
 
-membership <- get_powerschool("ps_membership_defaults") %>%
+membership <- get_powerschool("ps_membership_reg") %>%
   filter(yearid >= ps_sy_termid) %>%
   drop_fivetran_cols() %>%
   select(studentid,
@@ -91,22 +91,43 @@ membership <- get_powerschool("ps_membership_defaults") %>%
          date = calendardate,
          enrolled = studentmembership,
          grade_level,
-         attendance = att_calccntpresentabsent) %>%
+         attendance = ATT_CalcCntPresentAbsent ) %>%
   collect(n = Inf)
 
-flog.info("Get attendance_code table") 
+flog.info("Get attendance_code table")
 att_code <- get_powerschool("attendance_code") %>%
   filter(yearid >= ps_sy_termid) %>%
   drop_fivetran_cols %>%
   select(id,
-         yearid, 
-         schoolid, 
+         yearid,
+         schoolid,
          att_code,
          presence_status_cd) %>%
   collect()
 
-flog.info("Join memeberhips and attendance")  
 
+flog.info("Get terms table")
+terms <- get_powerschool("terms") %>%
+  filter(yearid >= ps_sy_termid) %>%
+  drop_fivetran_cols %>%
+  select(abbreviation,
+         yearid,
+         name,
+         firstday,
+         lastday) %>%
+  distinct() %>%
+  collect() %>%
+  mutate(firstday = ymd(firstday),
+         lastday = ymd(lastday))
+
+terms <- terms %>%
+  as.data.frame %>%
+  mutate(term_interval = firstday %--% lastday)
+
+
+
+
+         
 attendance_2 <- attendance %>%
   inner_join(att_code, by = c("attendance_codeid" = "id",
                               "yearid",
@@ -135,13 +156,13 @@ attend_student <- member_att %>%
          present0 = ifelse(is.na(att_code), 1, 0),
          present1 = ifelse(att_code %in%  c("A", "S"), 0, present0),
          present2 = ifelse(att_code == "H", 0.5, present1),
-         present3 = ifelse(att_code %in% c("T", "E"), 1, present2),
+         present3 = ifelse(att_code %in% c("T", "E", "true"), 1, present2),
          present = ifelse(is.na(present2), 1, present3),
          absent = (1 - present)*enrolled) %>%
   left_join(students %>%
-              select(studentid = id, 
+              select(studentid = id,
                      student_number,
-                     lastfirst, 
+                     lastfirst,
                      home_room),
             by="studentid") %>%
   inner_join(schools, by=c("schoolid")) %>%
@@ -218,8 +239,14 @@ prep_att_tables <- . %>%
   arrange(week_in_sy) %>% #resort
     mutate(week_of_date_short_label=factor(week_in_sy,
                                            labels=unique(week_of_date_short_label)
-                                           )
-           ) #Short Week  Label
+                                           )  
+           ) %>%
+  mutate(quarter = case_when(
+    date %within% terms$term_interval[terms$abbreviation=='Q1'] ~ 'Q1',
+    date %within% terms$term_interval[terms$abbreviation=='Q2'] ~ 'Q2',
+    date %within% terms$term_interval[terms$abbreviation=='Q3'] ~ 'Q3',
+    date %within% terms$term_interval[terms$abbreviation=='Q4'] ~ 'Q4',
+  ))
 
 flog.info("Apply prep function to attend tables.")
 
@@ -238,13 +265,23 @@ attend_date_grade  <- att_list[[3]]
 attend_date_grade_hr <- att_list[[4]]
 
 
-flog.debug(" Weekly and YTD ADA")
+
+
+flog.debug(" Weekly, Quarterly, and YTD ADA")
+  # ytd
 ada_weekly_school_grade <- attend_date_school_grade %>%
   group_by(schoolabbreviation, grade_level) %>%
   mutate(ytd_present = cumsum(present),
          ytd_enrolled = cumsum(enrolled),
          ytd_ada = ytd_present/ytd_enrolled*100
          ) %>%
+  # quarteRly
+   group_by(schoolabbreviation, grade_level, quarter) %>%
+   mutate(cum_quarterly_present = cumsum(present),
+          cum_quarterly_enrolled = cumsum(enrolled),
+          quarterly_ada = cum_quarterly_present/cum_quarterly_enrolled*100
+   ) %>%
+  # Weekly
   group_by(schoolabbreviation, grade_level, week_of_date, week_of_date_short_label) %>%
   mutate(cum_weekly_present = cumsum(present),
          cum_weekly_enrolled = cumsum(enrolled),
@@ -257,6 +294,12 @@ ada_weekly_grade_hr <- attend_date_grade_hr %>%
   mutate(ytd_present = cumsum(present),
          ytd_enrolled = cumsum(enrolled),
          ytd_ada = ytd_present/ytd_enrolled*100
+  ) %>%
+  # quarteRly
+  group_by(schoolabbreviation, grade_level, quarter, home_room) %>%
+  mutate(cum_quarterly_present = cumsum(present),
+         cum_quarterly_enrolled = cumsum(enrolled),
+         quarterly_ada = cum_quarterly_present/cum_quarterly_enrolled*100
   ) %>%
   group_by(schoolabbreviation, grade_level, home_room, week_of_date, week_of_date_short_label) %>%
   mutate(cum_weekly_present = cumsum(present),
@@ -271,6 +314,12 @@ ada_weekly_school <- attend_date_school %>%
   mutate(ytd_present = cumsum(present),
          ytd_enrolled = cumsum(enrolled),
          ytd_ada = ytd_present/ytd_enrolled*100
+  ) %>%
+  # quarteRly
+  group_by(schoolabbreviation, quarter) %>%
+  mutate(cum_quarterly_present = cumsum(present),
+         cum_quarterly_enrolled = cumsum(enrolled),
+         quarterly_ada = cum_quarterly_present/cum_quarterly_enrolled*100
   ) %>%
   group_by(schoolabbreviation, week_of_date, week_of_date_short_label) %>%
   mutate(cum_weekly_present = cumsum(present),
@@ -299,7 +348,7 @@ attend_student_ytd <- attend_student %>%
   mutate(ada_rank = cume_dist(ada)) %>%
   arrange(schoolabbreviation, grade_level, ada_rank)
 
- 
+
 data_dir <- "/data"
 
 attendance_dir <- sprintf("%s/attendance/", data_dir)
@@ -317,7 +366,45 @@ save(attend_student,
      ada_weekly_school,
      file="/data/attendance.Rda")
 
+
+ada_list <- ls(pattern = "ada_")
+#ada_list_names <- names(ada_list)
+
+ada_list_path <- sprintf("/data/%s.rda", ada_list)
+pwalk(list(ada_list, ada_list_path), ~save(list = .x, file = .y))
+
+
+
 flog.info("Telling shiny to restart.")
 system('touch /srv/shiny-server/war/restart.txt')
+
+flog.info("Save data to gcs.")
+Sys.setenv("GCS_AUTH_FILE" = "/config/gcs/kipp-chicago-silo-2-3789ce3e3415.json")
+
+library(googleCloudStorageR)
+
+gcs_global_bucket("idea_attendance")
+
+#gcs_results<- ftry(gcs_upload(file = "/data/attendance.Rda", name = "attendance/attendance.Rda"))
+
+
+#gcs_results_2<- ftry(gcs_upload(file = "/data/ada_weekly_school.Rda", name = "attendance/ada_weekly_school.Rda"))
+
+#data_dir <- "/data"
+
+#ada_idea_files <- list.files(path = "/data", pattern = "ada_")
+
+#ada_idea_file_path <- sprintf("%s/%s", data_dir, ada_idea_files)
+#idea_bucket <- sprintf("attendance/%s", ada_idea_files)
+
+#gcs_results <- pmap(list(ada_idea_file_path, idea_bucket), ~ftry(gcs_upload(file = .x, name = .y)))
+gcs_results <- gcs_save(ada_weekly_grade_hr, 
+                        ada_weekly_school, 
+                        ada_weekly_school_grade,
+                        file = "ada.rda")
+
+gcs_get_global_bucket()
+flog.info("Uploads complete")
+
 
 flog.info("Script complete.")

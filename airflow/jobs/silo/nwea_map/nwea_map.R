@@ -67,7 +67,7 @@ map_table_names <- map_file_names %>%
 
 map_file_paths <- sprintf("%s/%s", unzip_dir, map_file_names)
 
-map_cloud_file_names <- sprintf("%s/%s_%s", map_table_names, map_table_names, term_name)
+map_cloud_file_names <- sprintf("%s/%s_%s.csv", map_table_names, map_table_names, term_name)
 
 gcs_global_bucket("nwea_map")
 
@@ -75,4 +75,9 @@ gcs_results<- ftry(map2(map_file_paths,
                    map_cloud_file_names,
                    ~gcs_upload(file = .x, name = .y)))
 
-flog.info("Uploads complete!!!")
+flog.info("Uploads complete")
+
+flog.info("Cleaning up files and directorys")
+unlink(temp)
+
+flog.info("Finished!")

@@ -1,0 +1,8 @@
+{
+    "endpoints":[
+            {"table_name":"cc", "query_expression":"termid=ge=2700;termid=lt=2800",
+              "projection":"dateleft,schoolid,termid,period_obsolete,attendance_type_code,unused2,currentabsences,currenttardies,attendance,teacherid,lastgradeupdate,section_number,course_number,origsectionid,unused3,teachercomment,lastattmod,asmtscores,firstattdate,finalgrades,studyear,log,expression,studentsectenrl_guid,teacherprivatenote,ab_course_cmp_fun_flg,ab_course_cmp_ext_crd,ab_course_cmp_met_cd,ab_course_eva_pro_cd,ab_course_cmp_sta_cd,dcid,id,studentid,sectionid,dateenrolled"},
+            {"table_name":"cc", "query_expression":"termid=gt=-2800;termid=le=-2700",
+              "projection":"dateleft,schoolid,termid,period_obsolete,attendance_type_code,unused2,currentabsences,currenttardies,attendance,teacherid,lastgradeupdate,section_number,course_number,origsectionid,unused3,teachercomment,lastattmod,asmtscores,firstattdate,finalgrades,studyear,log,expression,studentsectenrl_guid,teacherprivatenote,ab_course_cmp_fun_flg,ab_course_cmp_ext_crd,ab_course_cmp_met_cd,ab_course_eva_pro_cd,ab_course_cmp_sta_cd,dcid,id,studentid,sectionid,dateenrolled"}
+        ]
+}
