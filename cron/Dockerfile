@@ -12,9 +12,13 @@ RUN apt-get update -y && apt-get install -y  \
 
 # add R packages necessary for jobs to run.
 
-RUN R -e "install.packages('tidyverse')"
+RUN R -e "install.packages('tidyverse', repo = 'cran.rstudio.com')"
 
-#RUN R -e "devtools::install_github('hadley/dplyr')"
+RUN R -e "install.packages('bindrcpp', repo = 'cran.rstudio.com')"
+
+RUN R -e "install.packages('plogr', repo = 'cran.rstudio.com')"
+
+RUN R -e "devtools::install_github('hadley/dplyr')"
 
 RUN R -e "install.packages(c('ETLUtils', 'RJDBC'))"
 
@@ -51,6 +55,8 @@ RUN R -e "install.packages('dbplyr')"
 RUN R -e "install.packages('janitor')"
 
 RUN R -e "install.packages('snakecase')"
+
+RUN R -e " devtools::install_github('rstats-db/bigrquery')"
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \

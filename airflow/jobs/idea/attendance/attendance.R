@@ -367,11 +367,11 @@ save(attend_student,
      file="/data/attendance.Rda")
 
 
-ada_list <- ls(pattern = "ada_")
+#ada_list <- ls(pattern = "ada_")
 #ada_list_names <- names(ada_list)
 
-ada_list_path <- sprintf("/data/%s.rda", ada_list)
-pwalk(list(ada_list, ada_list_path), ~save(list = .x, file = .y))
+#ada_list_path <- sprintf("/data/%s.rda", ada_list)
+#pwalk(list(ada_list, ada_list_path), ~save(list = .x, file = .y))
 
 
 
@@ -401,9 +401,10 @@ gcs_global_bucket("idea_attendance")
 gcs_results <- gcs_save(ada_weekly_grade_hr, 
                         ada_weekly_school, 
                         ada_weekly_school_grade,
+                        attend_student_ytd,
                         file = "ada.rda")
 
-gcs_get_global_bucket()
+#gcs_get_global_bucket()
 flog.info("Uploads complete")
 
 
