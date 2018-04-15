@@ -55,7 +55,7 @@ students_file <- sprintf("%s/StudentsBySchool.csv", unzip_dir)
 students_by_school <- read_csv(students_file, n_max = 5)
 
 term_name <- unique(students_by_school$TermName) %>%
-  to_parsed_case(preprocess = "\\-")
+  to_parsed_case(sep_in = "\\-")
 
 flog.info(sprintf("Term name is %s", term_name))
 
