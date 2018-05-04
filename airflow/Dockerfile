@@ -62,7 +62,7 @@ RUN set -ex \
     && pip install ndg-httpsclient \
     && pip install pyasn1 \
     && pip install apache-airflow[crypto,postgres,hdfs,jdbc]==$AIRFLOW_VERSION \
-    && pip3 install requests oauth2client gcloud retrying python-dateutil ConfigParser\
+    && pip3 install wheel requests oauth2client gcloud retrying python-dateutil ConfigParser\
     #&& pip install celery[redis]==3.1.17 \
     && apt-get remove --purge -yqq $buildDeps \
     && apt-get clean \
