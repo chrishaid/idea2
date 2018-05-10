@@ -16,10 +16,17 @@ source("lib/helpers.R")
 config <- as.data.frame(read.dcf("/config/config.dcf"),
                         stringsAsFactors = FALSE)
 
-silo_ill_db <- src_sqlserver(server =  config$SILO_URL,
-                              database = config$SILO_DBNAME_ILL,
-                              properties = list(user = config$SILO_USER,
-                                                password = config$SILO_PWD))
+# silo_ill_db <- src_sqlserver(server =  config$SILO_URL,
+#                               database = config$SILO_DBNAME_ILL,
+#                               properties = list(user = config$SILO_USER,
+#                                                 password = config$SILO_PWD))
+
+silo_ill_db <- dbConnect(SQLServer(),
+                         server =  config$SILO_URL,
+                             database = config$SILO_DBNAME_ILL,
+                             properties = list(user = config$SILO_USER,
+                                               password = config$SILO_PWD))
+
 
 
 message("Getting Students")

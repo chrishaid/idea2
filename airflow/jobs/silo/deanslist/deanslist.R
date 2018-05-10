@@ -52,7 +52,7 @@ gcs_global_bucket("deanslist")
 flog.info("Uploading suspension data to GCS")
 
 susp_df <- bind_rows(susp_list) %>%
-  clean_names() %>%
+  clean_names("old_janitor") %>%
   extract_school_name()
 
 susp_rows <- susp_df$penalties %>%
@@ -86,7 +86,7 @@ flog.info("Incident data successfully pulled for keys %s",
 
 flog.info("Uploading deanslist incidents data ot GCS")
 incid_df <- bind_rows(incid_list) %>%
-  clean_names %>%
+  clean_names("old_janitor") %>%
   extract_school_name()
 
 gcs_upload(incid_df, name = sprintf("incidents/files/incidents_%s.json", sy),

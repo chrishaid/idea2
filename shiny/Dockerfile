@@ -58,7 +58,7 @@ RUN wget --no-verbose https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubu
 
 #RUN R -e "install.packages('devtools')"
 
-RUN R -e "install.packages(c('RCurl', 'rmarkdown', 'shiny', 'xtable', 'Cairo', 'shinydashboard', 'DT'), repos='https://cran.rstudio.com/')"
+RUN R -e "install.packages(c('RCurl', 'rmarkdown', 'shiny', 'xtable', 'Cairo', 'shinydashboard', 'DT'), repos='https://cloud.r-project.org/')"
 
 #RUN R -e "devtools::install_github('hadley/readr')"
 
@@ -94,7 +94,11 @@ RUN R -e "install.packages('igraph',  repos='https://cran.rstudio.com/')"
 
 RUN R -e "install.packages('formattable')"
 
+RUN R -e "install.packages('knitr', repos='https://cran.rstudio.com/')"
 
+RUN R -e "install.packages('httpuv', repos='https://cloud.r-project.org/')"
+
+RUN R -e "devtools::install_github('rstudio/shiny')"
 
 # Set timezone to Chicago
 RUN cp /usr/share/zoneinfo/America/Chicago /etc/localtime && \

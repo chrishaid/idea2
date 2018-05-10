@@ -25,9 +25,9 @@ bigrquery::set_service_token("/config/bq/kipp-chicago-silo-2-aa786970aefd.json")
 
 flog.info("Get DL Supsesions")
 susps <- get_deanslist("suspensions") %>% 
-  filter(issuets_date >= "2017-08-21 00:00") %>%
+  filter(issue_ts_date >= "2017-08-21 00:00") %>%
   collect(n = Inf) %>%
-  clean_names() 
+  clean_names("old_janitor") 
 
 flog.info("Get Membership")
 ps_md <-get_ps('membership') 
@@ -64,12 +64,12 @@ adm <- adm %>% inner_join(schools, by="schoolid")
 flog.info("Extracting penalites nested field")
 penalties <- 
   susps$penalties %>% purrr::map_df(~jsonlite::fromJSON(.x)) %>%
-  clean_names() %>%
+  clean_names("old_janitor") %>%
   select(suspensionid, 
          startdate, 
          enddate, 
          numdays,
-         penaltyname
+         penaltyname 
   ) %>%
   mutate(startdate = ymd(startdate),
          enddate = ymd(enddate),
@@ -83,7 +83,7 @@ flog.info('Filtering to OSSs')
 oss <- susps %>%
 inner_join(penalties %>% 
              filter(str_detect(penaltyname, "Out of School Suspension")),
-           by = "suspensionid") %>%
+           by = c("suspension_id" = "suspensionid")) %>%
 mutate(SY = sprintf("SY%s", 
                     calc_academic_year(startdate, date_parser = lubridate::ymd, format = 'short'))) 
 
@@ -93,24 +93,24 @@ flog.info('Calculating OSS Rates')
 
 oss_2<-oss %>%  
   mutate(startdate = if_else(is.na(startdate), 
-                             ymd_hms(oss$issuets_date) +days(1), 
+                             ymd_hms(oss$issue_ts_date) +days(1), 
                              ymd_hms(sprintf("%s 00:00:00", startdate)))) %>%
   arrange(startdate) %>%
   #filter(startdate >= ymd("2017-08-24")) %>%
   mutate(month_1 = month(startdate, label = TRUE, abbr = TRUE),
          month = forcats::fct_inorder(as.character(month_1), ordered = TRUE)) %>%
-  select(student_number = studentschoolid, 
-         student_first = studentfirst,
-         student_last = studentlast,
+  select(student_number = student_school_id, 
+         student_first,
+         student_last,
          school_name,
          month, 
          startdate, 
          infraction, 
          category,
-         reporteddetails,
-         gradelevelshort, 
+         reported_details,
+         grade_level_short, 
          numdays, 
-         adminsummary,
+         admin_summary,
          SY) %>%
   distinct()
 
@@ -131,32 +131,32 @@ flog.info('Filtering and calculating ISSs')
 iss <- susps %>%
   inner_join(penalties %>% 
                filter(penaltyname == "In School Suspension"),
-             by = "suspensionid") %>%
+             by = c("suspension_id" = "suspensionid")) %>%
   mutate(SY = sprintf("SY%s", 
-                      calc_academic_year(issuets_date, date_parser = lubridate::ymd_hms, format = 'short'))) 
+                      calc_academic_year(issue_ts_date, date_parser = lubridate::ymd_hms, format = 'short'))) 
 
 
 iss_2<-iss %>%  
   mutate(startdate = if_else(is.na(startdate), 
-                             ymd_hms(iss$issuets_date) +days(1), 
+                             ymd_hms(iss$issue_ts_date) +days(1), 
                              ymd_hms(sprintf("%s 00:00:00", startdate)))) %>%
   arrange(startdate) %>%
 #  filter(startdate >= ymd("2017-08-24")) %>%
   mutate(month_1 = month(startdate, label = TRUE, abbr = TRUE),
          month = forcats::fct_inorder(as.character(month_1), ordered = TRUE)) %>%
   select(
-         student_number = studentschoolid, 
-         student_first = studentfirst,
-         student_last = studentlast,
+         student_number = student_school_id, 
+         student_first,
+         student_last,
          school_name,
          month, 
          startdate, 
          infraction,
          category,
-         reporteddetails,
-         gradelevelshort, 
+         reported_details,
+         grade_level_short, 
          numdays, 
-         adminsummary, 
+         admin_summary, 
          SY) %>% 
   distinct()
 
@@ -219,7 +219,7 @@ oss_kcs<-oss_2 %>%
 
 
 oss_kcs_no_k2 <- oss_2 %>%
-  filter(!gradelevelshort %in% c("K", "1st", "2nd")) %>%
+  filter(!grade_level_short %in% c("K", "1st", "2nd")) %>%
   mutate(month_year = floor_date(startdate, unit = "month")) %>%
   group_by(SY, school_name, month, month_year) %>%
   summarize(N_susps = n()) %>%

@@ -60,11 +60,14 @@ RUN R -e " devtools::install_github('rstats-db/bigrquery')"
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
-                   clang
+                   clang \
+                   libssl-dev
+
 
 RUN mkdir -p $HOME/.R/ \
     && echo "\nCXX=clang++ -ftemplate-depth-256\n" >> $HOME/.R/Makevars \
-    && echo "CC=clang\n" >> $HOME/.R/Makevars
+    && echo "CC=clang\n" >> $HOME/.R/Makevars \
+    && echo  "CXXFLAGS=-O3 -mtune=native -march=native -Wno-unused-variable -Wno-unused-function  -Wno-macro-redefined\n" >> $HOME/.R/Makevars
 
 RUN  ln -s /usr/lib/x86_64-linux-gnu/libgfortran.so.3 /usr/lib/libgfortran.so
 
@@ -73,7 +76,7 @@ RUN install2.r --error \
     inline \
     RcppEigen \
     StanHeaders \
-    rstan \
+#    rstan \
     KernSmooth
 
 
@@ -83,6 +86,9 @@ RUN mkdir -p /home/rstudio/.R/ \
     && echo "CXXFLAGS=-O3\n" >> /home/rstudio/.R/Makevars \
     && echo "\nrstan::rstan_options(auto_write = TRUE)" >> /home/rstudio/.Rprofile \
     && echo "options(mc.cores = parallel::detectCores())" >> /home/rstudio/.Rprofile
+
+RUN R -e "install.packages('rstan', repos = 'https://cloud.r-project.org/', dependencies=TRUE)"
+
 
 RUN R -e "install.packages('prophet')"
 # add Python for scripts that require python

@@ -12,7 +12,7 @@
 #  env_file:
 #    - ./oauth/.env
 
-version: '2'
+version: '2.1'
 services:
 #########################
 ##  Cron / ETL Service ## using for Rstudio
@@ -52,9 +52,13 @@ services:
   postgres:
     image: postgres:9.6
     environment:
-      - POSTGRES_USER=airflow
-      - POSTGRES_PASSWORD=airflow
-      - POSTGRES_DB=airflow
+        - POSTGRES_USER=airflow
+        - POSTGRES_PASSWORD=airflow
+        - POSTGRES_DB=airflow
+  #    - PGDATA=/var/lib/postgresql/data/pgdata
+  #  volumes:
+  #    - ./pgdata:/var/lib/postgresql/data/pgdata
+
 
   #########################
   ## Airflow service     ##
